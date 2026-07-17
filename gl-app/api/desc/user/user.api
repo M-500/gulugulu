@@ -1,0 +1,24 @@
+syntax = "v1"
+
+info(
+    title: "用户实例"
+    desc: "用户实例"
+    author: "linlin"
+    email: "1978992154@qq.com"
+    version: "v1"
+)
+
+
+type User{
+    Id  int64 `json:"id"`
+    Email string `json:"email"`
+    NickName string `json:"nickName"`
+    Sex int64 `json:"sex"`
+    Avatar string   `json:"avatar"`
+}
+
+
+type (
+
+
+)

@@ -7,3 +7,33 @@ info(
     email: "1978992154@qq.com"
     version: "v1"
 )
+
+import (
+    "na/na.api"
+)
+
+
+// No Need Login
+@server(
+    prefix: na/v1
+    group: noAuth
+)
+service noAuth {
+
+    @doc "captcha"
+    @handler captcha
+    get /captcha returns (CaptchaResp)
+
+    @doc "login"
+    @handler login
+    post /user/login (LoginReq) returns (LoginResp)
+
+    @doc "register"
+    @handler register
+    post /user/register (RegisterReq) returns (RegisterResp)
+}
+
+
+// Need login
+
+

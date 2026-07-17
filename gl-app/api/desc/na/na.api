@@ -1,0 +1,50 @@
+syntax = "v1"
+
+info(
+    title: "无需登录的实例"
+    desc: "无需登录的实例"
+    author: "linlin"
+    email: "1978992154@qq.com"
+    version: "v1"
+)
+
+
+// 验证码相关的
+type (
+    CaptchaResp {
+        CaptchaID string `json:"captchaId"`
+        CaptchaPath string `json:"captchaPath"`
+    }
+)
+
+// 注册相关的
+type (
+    RegisterReq{
+        Emial string `json:"emial"`
+        NickName string    `json:"nickName"`
+        Password string     `json:"password"`
+    }
+    RegisterResp {
+        AccessToken string `json:"accessToken"`
+        AccessExpire int64  `json:"accessExpire"`
+        RefreshAfter int64  `json:"refreshAfter"`
+    }
+)
+
+// 登录相关的
+type (
+    LoginReq{
+        Email string `json:"email"`
+        Password string `json:"password"`
+        CaptchaID string `json:"captchaId"`
+        CaptchaCode string `json:"captchaCode"`
+    }
+    LoginResp {
+        AccessToken string `json:"accessToken"`
+        AccessExpire int64  `json:"accessExpire"`
+        RefreshAfter int64  `json:"refreshAfter"`
+    }
+)
+
+// 首页获取推荐笔记
+
