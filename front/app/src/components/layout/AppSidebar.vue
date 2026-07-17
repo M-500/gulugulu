@@ -1,0 +1,140 @@
+<script setup>
+import BaseIcon from '@/components/common/BaseIcon.vue'
+import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
+</script>
+
+<template>
+  <aside
+    class="app-sidebar"
+    aria-label="主导航"
+  >
+    <RouterLink
+      class="brand"
+      to="/"
+      aria-label="咕噜咕噜首页"
+    >
+      咕噜
+    </RouterLink>
+
+    <nav class="sidebar-nav">
+      <RouterLink
+        v-for="item in primaryNavItems"
+        :key="item.key"
+        class="sidebar-link"
+        :class="{ active: item.active }"
+        to="/"
+      >
+        <span class="sidebar-icon">
+          <BaseIcon
+            :name="item.icon"
+            size="20"
+          />
+        </span>
+        <span>{{ item.label }}</span>
+        <small
+          v-if="item.badge"
+          class="sidebar-badge"
+        >{{ item.badge }}</small>
+      </RouterLink>
+    </nav>
+
+    <nav
+      class="sidebar-nav sidebar-nav-bottom"
+      aria-label="辅助导航"
+    >
+      <RouterLink
+        v-for="item in secondaryNavItems"
+        :key="item.key"
+        class="sidebar-link"
+        to="/"
+      >
+        <span class="sidebar-icon">
+          <BaseIcon
+            :name="item.icon"
+            size="20"
+          />
+        </span>
+        <span>{{ item.label }}</span>
+      </RouterLink>
+    </nav>
+  </aside>
+</template>
+
+<style scoped>
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  width: var(--layout-sidebar);
+  height: 100vh;
+  flex: 0 0 var(--layout-sidebar);
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 28px 26px;
+  background: #fff;
+  border-right: 1px solid #f4f4f5;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 36px;
+  margin-bottom: 48px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0;
+  background: var(--color-primary);
+}
+
+.sidebar-nav {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+}
+
+.sidebar-nav-bottom {
+  margin-top: auto;
+}
+
+.sidebar-link {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-radius: 999px;
+  color: #202124;
+  font-weight: 700;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+  background: var(--color-fill);
+}
+
+.sidebar-icon {
+  display: inline-flex;
+  color: #383a40;
+}
+
+.sidebar-badge {
+  padding: 1px 5px;
+  border-radius: 6px;
+  color: #12a675;
+  font-size: 10px;
+  font-weight: 800;
+  background: #ddfaee;
+}
+
+@media (max-width: 900px) {
+  .app-sidebar {
+    display: none;
+  }
+}
+</style>
