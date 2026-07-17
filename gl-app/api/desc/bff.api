@@ -1,0 +1,9 @@
+syntax = "v1"
+
+info(
+    title: "Bff业务聚合层"
+    desc: "BFF"
+    author: "linlin"
+    email: "1978992154@qq.com"
+    version: "v1"
+)
