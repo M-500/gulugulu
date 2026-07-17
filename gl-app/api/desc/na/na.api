@@ -23,6 +23,7 @@ type (
         Emial string `json:"emial"`
         NickName string    `json:"nickName"`
         Password string     `json:"password"`
+        VerificationCode string `json:"verificationCode"`
     }
     RegisterResp {
         AccessToken string `json:"accessToken"`
