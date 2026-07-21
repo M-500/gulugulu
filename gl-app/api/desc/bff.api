@@ -32,3 +32,12 @@ service gulu {
 }
 
 // Need login
+//@server(
+//	prefix: api/v1/admin
+//	group: vedio
+//)
+//service gulu{
+//	@doc "media"
+//	@handler vedio_upload
+//	post /upload () returns ()
+//}
