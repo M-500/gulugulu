@@ -42,10 +42,11 @@ func (i *imgCaptchaSvc) GetCaptcha() (*types.CaptchaResponse, error) {
 	id, b64s, _, err := cp.Generate()
 	if err != nil {
 		i.Logger.Error("生成图片验证码失败", err)
-		return nil, fmt.Errorf("failed to generate captcha: %w", err)
+		return nil, fmt.Errorf("生成图片验证码失败: %w", err)
 	}
-	return &types.CaptchaResponse{
+	res := types.CaptchaResponse{
 		CaptchaID: id,
 		PicPath:   b64s,
-	}, nil
+	}
+	return &res, nil
 }

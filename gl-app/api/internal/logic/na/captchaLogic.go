@@ -2,7 +2,6 @@ package na
 
 import (
 	"context"
-
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 
@@ -32,7 +31,8 @@ func (l *CaptchaLogic) Captcha() (resp *types.CaptchaResp, err error) {
 	if err != nil {
 		return nil, err
 	}
-	resp.CaptchaID = captcha.CaptchaID
-	resp.CaptchaPath = captcha.PicPath
-	return resp, err
+	var res types.CaptchaResp
+	res.CaptchaID = captcha.CaptchaID
+	res.CaptchaPath = captcha.PicPath
+	return &res, err
 }

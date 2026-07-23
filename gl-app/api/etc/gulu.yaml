@@ -1,3 +1,20 @@
 Name: gulu
 Host: 0.0.0.0
 Port: 8888
+
+# MySQL配置
+Mysql:
+  DataSource: root:wulinlin@tcp(192.168.10.26:3306)/gulugulu?charset=utf8mb4&parseTime=True&loc=Local
+
+CacheRedis:
+  - Host: 127.0.0.1:16379
+    Type: node
+    Pass:
+
+# 密码加密的盐
+Salt: ZfhVOFkGgPTryWxCwd7qnJaZR9KQ2i8xe
+
+#jwtAuth
+JwtAuth:
+  AccessSecret: ae0536f9-6450-4606-8e13-5a19ed505da0
+  AccessExpire: 31536000

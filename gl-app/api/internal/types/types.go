@@ -20,7 +20,7 @@ type LoginResp struct {
 }
 
 type RegisterReq struct {
-	Emial            string `json:"emial"`
+	Email            string `json:"email"`
 	NickName         string `json:"nickName"`
 	Password         string `json:"password"`
 	VerificationCode string `json:"verificationCode"`
