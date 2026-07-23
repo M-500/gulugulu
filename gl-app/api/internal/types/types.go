@@ -6,6 +6,34 @@ type CaptchaResp struct {
 	CaptchaPath string `json:"captchaPath"`
 }
 
+type CompleteUploadReq struct {
+	MediaId   int64  `json:"mediaId"`
+	ObjectKey string `json:"objectKey"`
+}
+
+type CompleteUploadResp struct {
+	MediaId   int64  `json:"mediaId"`
+	Status    string `json:"status"`
+	Bucket    string `json:"bucket"`
+	ObjectKey string `json:"objectKey"`
+}
+
+type CreateUploadPresignReq struct {
+	ResourceType string `json:"resourceType"`
+	FileName     string `json:"fileName"`
+	ContentType  string `json:"contentType,optional"`
+}
+
+type CreateUploadPresignResp struct {
+	MediaId   int64             `json:"mediaId"`
+	Bucket    string            `json:"bucket"`
+	ObjectKey string            `json:"objectKey"`
+	UploadUrl string            `json:"uploadUrl"`
+	Method    string            `json:"method"`
+	ExpiresIn int64             `json:"expiresIn"`
+	Headers   map[string]string `json:"headers"`
+}
+
 type LoginReq struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`

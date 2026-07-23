@@ -20,7 +20,11 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.response?.data?.error || error.message || '请求失败'
+    const responseData = error.response?.data
+    const message = typeof responseData === 'string'
+      ? responseData
+      : responseData?.message || responseData?.error || error.message || '请求失败'
+
     return Promise.reject(new Error(message))
   }
 )

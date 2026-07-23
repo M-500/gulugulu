@@ -39,7 +39,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getCaptcha, login } from '@/api/auth'
+import { getCaptcha } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { isEmail, isStrongEnoughPassword } from '@/utils/validators'
 
@@ -122,8 +122,7 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    const payload = await login({ ...form, captchaId: captcha.id })
-    authStore.setSession(payload)
+    await authStore.login({ ...form, captchaId: captcha.id })
     successMessage.value = '登录成功'
     await router.push({ name: 'Dashboard' })
   } catch (error) {

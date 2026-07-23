@@ -1,7 +1,7 @@
 CREATE TABLE `user` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键自增ID',
-  `created_at` datetime(3) NOT NULL COMMENT '创建时间',
-  `updated_at` datetime NOT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
   `deleted_at` datetime DEFAULT NULL COMMENT '软删除标记',
   `email` varchar(255) NOT NULL COMMENT '邮箱，唯一key',
   `nickname` varchar(64) NOT NULL DEFAULT '' COMMENT '昵称',

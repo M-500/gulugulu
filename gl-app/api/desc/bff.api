@@ -10,6 +10,7 @@ info (
 
 import (
 	"na/na.api"
+	"media/media.api"
 )
 
 // No Need Login
@@ -32,12 +33,18 @@ service gulu {
 }
 
 // Need login
-//@server(
-// prefix: api/v1/admin
-// group: vedio
-//)
-//service gulu{
-// @doc "media"
-// @handler vedio_upload
-// post /upload () returns ()
-//}
+@server (
+	prefix: api/v1
+	group:  media
+	jwt:    JwtAuth
+)
+service gulu {
+	@doc "create upload presigned url"
+	@handler createUploadPresign
+	post /media/upload/presign (CreateUploadPresignReq) returns (CreateUploadPresignResp)
+
+	@doc "complete direct upload"
+	@handler completeUpload
+	post /media/upload/complete (CompleteUploadReq) returns (CompleteUploadResp)
+}
+

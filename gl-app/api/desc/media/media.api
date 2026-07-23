@@ -1,0 +1,39 @@
+syntax = "v1"
+
+info(
+    title: "媒体素材接口"
+    desc: "媒体素材接口"
+    author: "linlin"
+    email: "1978992154@qq.com"
+    version: "v1"
+)
+
+type (
+    CreateUploadPresignReq {
+        ResourceType string `json:"resourceType"`
+        FileName string `json:"fileName"`
+        ContentType string `json:"contentType,optional"`
+    }
+
+    CreateUploadPresignResp {
+        MediaId int64 `json:"mediaId"`
+        Bucket string `json:"bucket"`
+        ObjectKey string `json:"objectKey"`
+        UploadUrl string `json:"uploadUrl"`
+        Method string `json:"method"`
+        ExpiresIn int64 `json:"expiresIn"`
+        Headers map[string]string `json:"headers"`
+    }
+
+    CompleteUploadReq {
+        MediaId int64 `json:"mediaId"`
+        ObjectKey string `json:"objectKey"`
+    }
+
+    CompleteUploadResp {
+        MediaId int64 `json:"mediaId"`
+        Status string `json:"status"`
+        Bucket string `json:"bucket"`
+        ObjectKey string `json:"objectKey"`
+    }
+)

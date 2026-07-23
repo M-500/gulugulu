@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 
+	media "gl-app/api/internal/handler/media"
 	na "gl-app/api/internal/handler/na"
 	"gl-app/api/internal/svc"
 
@@ -11,6 +12,25 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// complete direct upload
+				Method:  http.MethodPost,
+				Path:    "/media/upload/complete",
+				Handler: media.CompleteUploadHandler(serverCtx),
+			},
+			{
+				// create upload presigned url
+				Method:  http.MethodPost,
+				Path:    "/media/upload/presign",
+				Handler: media.CreateUploadPresignHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
 	server.AddRoutes(
 		[]rest.Route{
 			{

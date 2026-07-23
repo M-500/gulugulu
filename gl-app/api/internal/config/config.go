@@ -20,4 +20,13 @@ type Config struct {
 		AccessSecret string
 		AccessExpire int64
 	}
+
+	Minio struct {
+		Endpoint        string
+		AccessKeyID     string
+		SecretAccessKey string
+		UseSSL          bool
+		TempBucket      string
+		PresignExpire   int64
+	}
 }

@@ -15,7 +15,7 @@ export function login(data) {
 
 export function register(data) {
   return http.post('/na/v1/user/register', {
-    emial: data.email,
+    email: data.email,
     nickName: data.nickName,
     password: data.password,
     verificationCode: data.verificationCode

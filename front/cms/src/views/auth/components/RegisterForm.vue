@@ -47,7 +47,6 @@
 import { onBeforeUnmount, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { register } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { isEmail, isStrongEnoughPassword } from '@/utils/validators'
 
@@ -105,8 +104,7 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    const payload = await register(form)
-    authStore.setSession(payload)
+    await authStore.register(form)
     successMessage.value = '注册成功'
     await router.push({ name: 'Dashboard' })
   } catch (error) {
