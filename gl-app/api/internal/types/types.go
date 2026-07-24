@@ -59,6 +59,31 @@ type CreateWorkResp struct {
 	PublishStatus string `json:"publishStatus"`
 }
 
+type CreatorWorkListItem struct {
+	WorkId        int64  `json:"workId"`
+	Type          string `json:"type"`
+	Title         string `json:"title"`
+	CoverUrl      string `json:"coverUrl"`
+	ReviewStatus  string `json:"reviewStatus"`
+	PublishStatus string `json:"publishStatus"`
+	ReviewReason  string `json:"reviewReason,optional"`
+	ScheduledAt   string `json:"scheduledAt,optional"`
+	PublishedAt   string `json:"publishedAt,optional"`
+	CreatedAt     string `json:"createdAt"`
+}
+
+type CreatorWorkListReq struct {
+	Page     int64 `form:"page,optional"`
+	PageSize int64 `form:"pageSize,optional"`
+}
+
+type CreatorWorkListResp struct {
+	Total    int64                 `json:"total"`
+	Page     int64                 `json:"page"`
+	PageSize int64                 `json:"pageSize"`
+	List     []CreatorWorkListItem `json:"list"`
+}
+
 type LoginReq struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`

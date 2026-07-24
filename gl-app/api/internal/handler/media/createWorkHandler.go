@@ -13,8 +13,8 @@ import (
 // 发布作品
 func CreateWorkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
-		if err := r.ParseMultipartForm(12 << 20); err != nil {
+		r.Body = http.MaxBytesReader(w, r.Body, 100<<20)
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			httpx.ErrorCtx(r.Context(), w, fmt.Errorf("解析发布表单失败: %w", err))
 			return
 		}

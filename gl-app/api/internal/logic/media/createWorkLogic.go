@@ -87,7 +87,13 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	}
 
 	if existed, findErr := l.svcCtx.WorkRepo.FindOneByUserIdIdempotencyKey(l.ctx, userID, payload.IdempotencyKey); findErr == nil {
-		_ = l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, existed.Id, 0)
+		// 数据库事务已成功但Kafka曾短暂不可用时，前端可使用同一个
+		// Idempotency-Key安全重试。只有消息成功写入Kafka才返回成功。
+		if existed.ProcessStatus == "pending" {
+			if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, existed.Id, 0); queueErr != nil {
+				return nil, queueErr
+			}
+		}
 		return &types.CreateWorkResp{
 			WorkId:        existed.Id,
 			ProcessStatus: existed.ProcessStatus,
@@ -218,7 +224,7 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	cleanupCover = false
 
 	if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, workID, 0); queueErr != nil {
-		l.Errorf("work %d queue publish failed, dispatcher will retry: %v", workID, queueErr)
+		return nil, queueErr
 	}
 
 	return &types.CreateWorkResp{
@@ -230,8 +236,8 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 }
 
 func (l *CreateWorkLogic) storeCover(userID int64, file multipart.File, header *multipart.FileHeader) (*mediaModel.MediaAsset, error) {
-	if header.Size <= 0 || header.Size > 5<<20 {
-		return nil, fmt.Errorf("封面大小必须在5MB以内")
+	if header.Size <= 0 || header.Size > 100<<20 {
+		return nil, fmt.Errorf("封面大小必须在100MB以内")
 	}
 	config, format, err := image.DecodeConfig(file)
 	if err != nil {

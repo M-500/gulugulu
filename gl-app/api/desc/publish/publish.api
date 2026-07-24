@@ -49,6 +49,31 @@ type (
         Name string `json:"name"`
     }
 
+    CreatorWorkListReq {
+        Page int64 `form:"page,optional"`
+        PageSize int64 `form:"pageSize,optional"`
+    }
+
+    CreatorWorkListItem {
+        WorkId int64 `json:"workId"`
+        Type string `json:"type"`
+        Title string `json:"title"`
+        CoverUrl string `json:"coverUrl"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+        ReviewReason string `json:"reviewReason,optional"`
+        ScheduledAt string `json:"scheduledAt,optional"`
+        PublishedAt string `json:"publishedAt,optional"`
+        CreatedAt string `json:"createdAt"`
+    }
+
+    CreatorWorkListResp {
+        Total int64 `json:"total"`
+        Page int64 `json:"page"`
+        PageSize int64 `json:"pageSize"`
+        List []CreatorWorkListItem `json:"list"`
+    }
+
     WorkDetailResp {
         WorkId int64 `json:"workId"`
         Type string `json:"type"`

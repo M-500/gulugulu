@@ -15,6 +15,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// 查询当前用户所有处理完成的作品
+				Method:  http.MethodGet,
+				Path:    "/creator/works",
+				Handler: media.GetCreatorWorkListHandler(serverCtx),
+			},
+			{
 				// 检查文件是否上传完成
 				Method:  http.MethodPost,
 				Path:    "/media/upload/complete",

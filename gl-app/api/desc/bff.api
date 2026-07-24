@@ -52,6 +52,10 @@ service gulu {
 	@handler createWork
 	post /works (CreateWorkReq) returns (CreateWorkResp)
 
+	@doc "查询当前用户所有处理完成的作品"
+	@handler getCreatorWorkList
+	get /creator/works (CreatorWorkListReq) returns (CreatorWorkListResp)
+
 	@doc "查询作品详情"
 	@handler getWork
 	get /works/:workId (WorkIdReq) returns (WorkDetailResp)

@@ -69,7 +69,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { completeUpload, createUploadPresign, uploadToObjectStorage } from '@/api/media'
-import { createWork, getWorkStatus } from '@/api/works'
+import { createWork } from '@/api/works'
 import { usePublishDraftStore } from '@/stores/publishDrafts'
 
 import PublishAssetsCard from './components/PublishAssetsCard.vue'
@@ -318,20 +318,10 @@ async function publishDraft() {
 
     uploadMessage.value = '正在创建作品'
     const created = await createWork(payload, cover, currentDraft.value.idempotencyKey)
-    uploadMessage.value = '素材处理中，请稍候'
-    const status = await waitForProcessing(created.workId)
-
-    if (status?.processStatus === 'failed') {
-      throw new Error(status.failureReason || '素材处理失败，请稍后重试')
-    }
 
     const draftId = currentDraft.value.id
     await draftStore.deleteDraft(draftId)
-    if (status?.reviewStatus === 'pending_review') {
-      alert(`作品 #${created.workId} 已提交，素材处理完成，正在等待审核。`)
-    } else {
-      alert(`作品 #${created.workId} 已提交后台处理，可稍后在作品管理中查看状态。`)
-    }
+    alert(`作品 #${created.workId} 已提交，后台将自动处理素材并进入审核。`)
   } catch (error) {
     alert(error.message || '发布失败，请稍后重试')
   } finally {
@@ -351,8 +341,8 @@ async function handleCoverInput(event) {
     alert('封面只支持 JPG、JPEG 或 PNG 格式。')
     return
   }
-  if (file.size > 5 * 1024 * 1024) {
-    alert('封面大小不能超过 5MB。')
+  if (file.size > 100 * 1024 * 1024) {
+    alert('封面大小不能超过 100MB。')
     return
   }
   await updateDraft({
@@ -440,17 +430,6 @@ async function convertImageToPng(blob) {
     canvas.toBlob((result) => result ? resolve(result) : reject(new Error('封面格式转换失败')), 'image/png')
   })
   return new File([pngBlob], 'cover.png', { type: 'image/png' })
-}
-
-async function waitForProcessing(workId) {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const status = await getWorkStatus(workId)
-    if (status.processStatus === 'failed' || status.reviewStatus === 'pending_review') {
-      return status
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, 2000))
-  }
-  return null
 }
 
 </script>

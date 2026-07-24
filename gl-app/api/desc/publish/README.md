@@ -18,7 +18,7 @@ goctl model mysql ddl -src work.sql -dir . -c --style goZero
 `POST /api/v1/works` 使用 `multipart/form-data`：
 
 - `payload`：JSON 字符串
-- `cover`：jpg/jpeg/png 封面，最大 5MB
+- `cover`：jpg/jpeg/png 封面，最大 100MB
 - `Idempotency-Key`：必填请求头，最多 64 字符
 
 示例 `payload`：
@@ -64,6 +64,18 @@ pending -> processing -> succeeded
 ```
 
 媒体处理成功不会直接发布。只有审核接口返回通过后，作品才会立即发布或进入定时发布。
+
+创建作品接口只等待数据库事务和Kafka消息投递成功，不等待图片迁移、视频转码或审核。
+前端收到 `workId` 后即可结束发布流程。
+
+## 作品管理列表
+
+```http
+GET /api/v1/creator/works?page=1&pageSize=20
+```
+
+该接口只返回当前用户 `process_status=succeeded` 的作品，不返回媒体处理中的作品。
+列表包含图片/视频类型、封面、审核状态、发布状态、审核失败原因和发布时间。
 
 ## 启动
 

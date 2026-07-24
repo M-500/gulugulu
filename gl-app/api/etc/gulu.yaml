@@ -1,6 +1,8 @@
 Name: gulu
 Host: 0.0.0.0
 Port: 8888
+# HTTP请求体最大100MB，覆盖go-zero默认的1MB限制。
+MaxBytes: 104857600
 
 # MySQL配置
 Mysql:
@@ -33,7 +35,7 @@ Minio:
 MediaQueue:
   Name: media-worker
   Brokers:
-    - 192.168.10.109:9092
+    - 192.168.10.109:9094
   Group: gulugulu-media-workers
   Topic: gulugulu-media-tasks
   Offset: first
