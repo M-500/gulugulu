@@ -33,7 +33,7 @@ Minio:
 MediaQueue:
   Name: media-worker
   Brokers:
-    - 127.0.0.1:19092
+    - 192.168.10.109:9092
   Group: gulugulu-media-workers
   Topic: gulugulu-media-tasks
   Offset: first

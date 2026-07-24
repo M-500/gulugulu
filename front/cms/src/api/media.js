@@ -21,13 +21,14 @@ export function completeUpload(data) {
 }
 
 export async function uploadToObjectStorage(file, presign) {
+  const contentType = presign.headers?.['Content-Type'] || file.type || 'application/octet-stream'
   const response = await axios({
     method: presign.method || 'PUT',
     url: normalizeObjectStorageUrl(presign.uploadUrl),
     headers: {
-      'Content-Type': 'application/octet-stream'
+      'Content-Type': contentType
     },
-    data: new Blob([file]),
+    data: file,
     responseType: 'blob',
     validateStatus: (status) => status >= 200 && status < 300
   })

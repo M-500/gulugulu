@@ -108,10 +108,15 @@ function normalizeAsset(asset) {
 }
 
 function normalizeDraft(meta, assets = []) {
+  const coverLocalUrl = meta.coverBlob ? URL.createObjectURL(meta.coverBlob) : ''
+
   return {
     ...meta,
+    type: meta.type === 'imageText' ? 'image' : meta.type,
+    idempotencyKey: meta.idempotencyKey || createId('publish'),
     savedText: formatDate(meta.updatedAt),
-    assets: assets.map(normalizeAsset)
+    assets: assets.map(normalizeAsset),
+    coverLocalUrl
   }
 }
 
@@ -143,6 +148,11 @@ function toDraftForStore(draft) {
     allowComment: draft.allowComment,
     original: draft.original,
     scheduled: draft.scheduled,
+    scheduledAt: draft.scheduledAt || '',
+    idempotencyKey: draft.idempotencyKey,
+    coverBlob: draft.coverBlob || null,
+    coverName: draft.coverName || '',
+    coverType: draft.coverType || '',
     // Pinia deeply wraps arrays and their entries with Vue proxies. IndexedDB
     // uses the structured clone algorithm and cannot persist those proxies, so
     // keep the storage boundary strictly plain-data-only.
@@ -163,7 +173,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
   getters: {
     draftCountByType: (state) => (type) => state.drafts.filter((draft) => draft.type === type).length,
     sortedDrafts: (state) => [...state.drafts].sort((a, b) => b.updatedAt - a.updatedAt),
-    videoDrafts: (state) => state.drafts.filter((draft) => draft.type === 'video' || draft.type === 'mixed')
+    videoDrafts: (state) => state.drafts.filter((draft) => draft.type === 'video')
   },
   actions: {
     async loadDrafts() {
@@ -171,6 +181,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
       this.drafts = drafts
         .map((draft) => ({
           ...draft,
+          type: draft.type === 'imageText' ? 'image' : draft.type,
           savedText: formatDate(draft.updatedAt)
         }))
         .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -205,10 +216,15 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         allowComment: true,
         original: false,
         scheduled: false,
+        scheduledAt: '',
         topics: [],
         createdAt: now,
         updatedAt: now,
         coverAssetId: assets[0]?.assetId || '',
+        idempotencyKey: createId('publish'),
+        coverBlob: null,
+        coverName: '',
+        coverType: '',
         assetMetas: assets.map(toAssetMeta)
       }
 
@@ -248,6 +264,12 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         ...patch,
         updatedAt: now
       }
+      if (Object.prototype.hasOwnProperty.call(patch, 'coverBlob')) {
+        if (this.currentDraft.coverLocalUrl) {
+          URL.revokeObjectURL(this.currentDraft.coverLocalUrl)
+        }
+        updated.coverLocalUrl = patch.coverBlob ? URL.createObjectURL(patch.coverBlob) : ''
+      }
       const assets = updated.assets
 
       await runStore(DRAFT_STORE, 'readwrite', (store) => store.put(toDraftForStore(updated)))
@@ -259,7 +281,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
       await this.loadDrafts()
     },
     async appendImages(files, uploadedAssets = []) {
-      if (!this.currentDraft || this.currentDraft.type !== 'imageText') {
+      if (!this.currentDraft || this.currentDraft.type !== 'image') {
         return
       }
 
@@ -298,7 +320,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
       })
     },
     async deleteCurrentImage(assetId) {
-      if (!this.currentDraft || this.currentDraft.type !== 'imageText') {
+      if (!this.currentDraft || this.currentDraft.type !== 'image') {
         return
       }
 
@@ -356,6 +378,9 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
           URL.revokeObjectURL(asset.localUrl)
         }
       })
+      if (this.currentDraft?.coverLocalUrl) {
+        URL.revokeObjectURL(this.currentDraft.coverLocalUrl)
+      }
     }
   }
 })

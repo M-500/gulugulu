@@ -23,9 +23,12 @@
           @delete-image="deleteImage"
         />
         <PublishCoverCard
+          :type="currentDraft.type"
           :assets="coverAssets"
           :cover-asset-id="currentDraft.coverAssetId"
+          :custom-cover-url="currentDraft.coverLocalUrl"
           @select="updateDraft({ coverAssetId: $event })"
+          @upload-cover="handleCoverInput"
         />
         <PublishComposeCard
           :form="form"
@@ -39,10 +42,10 @@
         <PublishSettings :form="form" @update-form="Object.assign(form, $event)" @persist="persistForm" @open-collection="collectionOpen = true" />
       </div>
 
-      <PublishPreview :asset="previewAsset" :assets="coverAssets" :form="form" />
+      <PublishPreview :asset="previewAsset" :assets="coverAssets" :cover-url="currentDraft.coverLocalUrl" :form="form" />
       <div class="publish-bar">
         <button class="ghost-button" type="button" @click="saveAndLeave">暂存离开</button>
-        <button class="primary-button" type="button" @click="publishDraft">发布</button>
+        <button class="primary-button" type="button" :disabled="publishing" @click="publishDraft">{{ publishing ? '提交中…' : '发布' }}</button>
       </div>
     </div>
 
@@ -66,6 +69,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { completeUpload, createUploadPresign, uploadToObjectStorage } from '@/api/media'
+import { createWork, getWorkStatus } from '@/api/works'
 import { usePublishDraftStore } from '@/stores/publishDrafts'
 
 import PublishAssetsCard from './components/PublishAssetsCard.vue'
@@ -86,6 +90,7 @@ const draftDrawerOpen = ref(false)
 const collectionOpen = ref(false)
 const collectionName = ref('')
 const uploading = ref(false)
+const publishing = ref(false)
 const uploadMessage = ref('')
 const bodyTopics = ref([])
 
@@ -96,6 +101,7 @@ const form = reactive({
   visibility: 'public',
   original: false,
   scheduled: false,
+  scheduledAt: '',
   topics: []
 })
 
@@ -122,6 +128,7 @@ watch(currentDraft, (draft) => {
   form.visibility = draft.visibility || 'public'
   form.original = Boolean(draft.original)
   form.scheduled = Boolean(draft.scheduled)
+  form.scheduledAt = draft.scheduledAt || ''
   form.topics = [...(draft.topics || [])]
   bodyTopics.value = extractTopics(draft.body || '')
 }, { immediate: true })
@@ -181,10 +188,13 @@ async function deleteImage(assetId) {
 }
 
 async function createDraftFromFiles(fileList, draftType = activeType.value) {
-  const maxFiles = draftType === 'imageText' ? 19 : 20
-  const files = Array.from(fileList).filter((file) => file.type.startsWith('video/') || file.type.startsWith('image/')).slice(0, maxFiles)
+  const isImageWork = draftType === 'image'
+  const files = Array.from(fileList)
+    .filter((file) => isImageWork ? file.type.startsWith('image/') : file.type.startsWith('video/'))
+    .slice(0, isImageWork ? 19 : 1)
 
   if (!files.length) {
+    alert(isImageWork ? '图片作品只能上传图片。' : '视频作品只能上传一个视频。')
     return
   }
 
@@ -208,7 +218,7 @@ async function uploadFiles(files) {
     const presign = await createUploadPresign({
       resourceType: file.type.startsWith('video/') ? 'Video' : 'Image',
       fileName: file.name,
-      contentType: 'application/octet-stream'
+      contentType: file.type || 'application/octet-stream'
     })
 
     await uploadToObjectStorage(file, presign)
@@ -251,6 +261,7 @@ async function persistForm() {
     visibility: form.visibility,
     original: form.original,
     scheduled: form.scheduled,
+    scheduledAt: form.scheduledAt,
     topics: form.topics
   })
 }
@@ -291,8 +302,155 @@ async function saveAndLeave() {
 }
 
 async function publishDraft() {
-  await persistForm()
-  alert('发布接口接入后会提交当前作品，草稿已暂存到本地。')
+  if (publishing.value) {
+    return
+  }
+
+  publishing.value = true
+  uploading.value = true
+  uploadMessage.value = '正在校验发布信息'
+
+  try {
+    await persistForm()
+    validatePublishForm()
+    const cover = await resolveCoverFile()
+    const payload = buildPublishPayload()
+
+    uploadMessage.value = '正在创建作品'
+    const created = await createWork(payload, cover, currentDraft.value.idempotencyKey)
+    uploadMessage.value = '素材处理中，请稍候'
+    const status = await waitForProcessing(created.workId)
+
+    if (status?.processStatus === 'failed') {
+      throw new Error(status.failureReason || '素材处理失败，请稍后重试')
+    }
+
+    const draftId = currentDraft.value.id
+    await draftStore.deleteDraft(draftId)
+    if (status?.reviewStatus === 'pending_review') {
+      alert(`作品 #${created.workId} 已提交，素材处理完成，正在等待审核。`)
+    } else {
+      alert(`作品 #${created.workId} 已提交后台处理，可稍后在作品管理中查看状态。`)
+    }
+  } catch (error) {
+    alert(error.message || '发布失败，请稍后重试')
+  } finally {
+    publishing.value = false
+    uploading.value = false
+    uploadMessage.value = ''
+  }
+}
+
+async function handleCoverInput(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) {
+    return
+  }
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    alert('封面只支持 JPG、JPEG 或 PNG 格式。')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('封面大小不能超过 5MB。')
+    return
+  }
+  await updateDraft({
+    coverBlob: file,
+    coverName: file.name,
+    coverType: file.type
+  })
+}
+
+function validatePublishForm() {
+  const draft = currentDraft.value
+  if (!form.title.trim()) {
+    throw new Error('请填写作品标题')
+  }
+  if (Array.from(form.title.trim()).length > 50) {
+    throw new Error('作品标题不能超过50个字符')
+  }
+  if (!draft.assets.length || draft.assets.some((asset) => !asset.mediaId || asset.uploadStatus !== 'uploaded')) {
+    throw new Error('存在尚未上传完成的作品素材')
+  }
+  if (draft.type === 'video' && draft.assets.length !== 1) {
+    throw new Error('视频作品必须且只能包含一个视频')
+  }
+  if (draft.type === 'image' && (draft.assets.length < 1 || draft.assets.length > 19)) {
+    throw new Error('图片作品必须包含1到19张图片')
+  }
+  if (form.scheduled) {
+    const scheduledTime = new Date(form.scheduledAt)
+    if (!form.scheduledAt || Number.isNaN(scheduledTime.getTime()) || scheduledTime.getTime() < Date.now() + 5 * 60 * 1000) {
+      throw new Error('定时发布时间必须至少晚于当前时间5分钟')
+    }
+  }
+}
+
+function buildPublishPayload() {
+  return {
+    type: currentDraft.value.type,
+    title: form.title.trim(),
+    content: form.body,
+    visibility: {
+      type: form.visibility,
+      userIds: []
+    },
+    topics: form.topics.map((name) => ({ id: 0, name })),
+    assets: currentDraft.value.assets.map((asset, index) => ({
+      mediaId: asset.mediaId,
+      sort: index
+    })),
+    collectionId: 0,
+    original: form.original,
+    scheduledAt: form.scheduled ? new Date(form.scheduledAt).toISOString() : null
+  }
+}
+
+async function resolveCoverFile() {
+  const draft = currentDraft.value
+  if (draft.coverBlob) {
+    return new File([draft.coverBlob], draft.coverName || 'cover.jpg', {
+      type: draft.coverType || draft.coverBlob.type || 'image/jpeg'
+    })
+  }
+  if (draft.type === 'video') {
+    throw new Error('请为视频作品上传一张封面图')
+  }
+
+  const selected = draft.assets.find((asset) => asset.assetId === draft.coverAssetId) || draft.assets[0]
+  if (!selected?.blob) {
+    throw new Error('无法读取所选封面，请重新上传封面图')
+  }
+  if (['image/jpeg', 'image/png'].includes(selected.blob.type)) {
+    const extension = selected.blob.type === 'image/png' ? 'png' : 'jpg'
+    return new File([selected.blob], `cover.${extension}`, { type: selected.blob.type })
+  }
+  return convertImageToPng(selected.blob)
+}
+
+async function convertImageToPng(blob) {
+  const bitmap = await createImageBitmap(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  canvas.getContext('2d').drawImage(bitmap, 0, 0)
+  bitmap.close()
+  const pngBlob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => result ? resolve(result) : reject(new Error('封面格式转换失败')), 'image/png')
+  })
+  return new File([pngBlob], 'cover.png', { type: 'image/png' })
+}
+
+async function waitForProcessing(workId) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const status = await getWorkStatus(workId)
+    if (status.processStatus === 'failed' || status.reviewStatus === 'pending_review') {
+      return status
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 2000))
+  }
+  return null
 }
 
 </script>

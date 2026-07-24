@@ -52,13 +52,19 @@ import { computed, ref } from 'vue'
 const props = defineProps({
   asset: { type: Object, default: null },
   assets: { type: Array, default: () => [] },
+  coverUrl: { type: String, default: '' },
   form: { type: Object, required: true }
 })
 
 const activeTab = ref('note')
+const customCoverAsset = computed(() => props.coverUrl ? {
+  assetId: 'custom-cover',
+  kind: 'image',
+  url: props.coverUrl
+} : null)
 const coverCards = computed(() => Array.from({ length: 4 }, (_, index) => ({
-  key: props.assets[index]?.assetId || `placeholder-${index}`,
-  asset: props.assets[index] || (index === 0 ? props.asset : null),
+  key: (index === 0 ? customCoverAsset.value?.assetId : null) || props.assets[index]?.assetId || `placeholder-${index}`,
+  asset: (index === 0 ? customCoverAsset.value : null) || props.assets[index] || (index === 0 ? props.asset : null),
   title: index === 0 ? (props.form.title || '示例笔记标题') : `示例笔记标题${index + 1}`
 })))
 </script>

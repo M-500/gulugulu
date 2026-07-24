@@ -9,22 +9,13 @@ export const publishTypes = [
     description: '适合短视频、教程、探店与内容切片'
   },
   {
-    key: 'imageText',
+    key: 'image',
     label: '上传图文',
     shortLabel: '图文',
     accept: 'image/*',
     hint: '拖拽图片到此或点击上传',
     buttonText: '上传图文',
     description: '适合多图笔记、清单攻略与种草内容'
-  },
-  {
-    key: 'mixed',
-    label: '视频+图文',
-    shortLabel: '混合',
-    accept: 'video/*,image/*',
-    hint: '拖拽视频和图片到此或点击上传',
-    buttonText: '上传素材',
-    description: '适合视频搭配图文补充的复合作品'
   }
 ]
 

@@ -1,6 +1,6 @@
 <template>
   <section class="editor-card asset-card">
-    <template v-if="type === 'imageText'">
+    <template v-if="type === 'image'">
       <div class="editor-card__header image-editor__header">
         <div><h2>图片编辑</h2><span>{{ assets.length }}/19</span></div>
         <button class="cover-advice" type="button">◕ 获取封面建议</button>
@@ -21,8 +21,8 @@
 
     <template v-else>
       <div class="editor-card__header">
-        <h2>{{ type === 'mixed' ? '混合作品素材' : '视频文件' }}</h2>
-        <label class="reupload-button">重新上传<input :accept="accept" multiple type="file" @change="$emit('replace', $event)"></label>
+        <h2>视频文件</h2>
+        <label class="reupload-button">重新上传<input :accept="accept" type="file" @change="$emit('replace', $event)"></label>
       </div>
       <div class="asset-summary">
         <div v-for="asset in assets" :key="asset.assetId" class="asset-item">
