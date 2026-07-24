@@ -15,13 +15,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				// complete direct upload
+				// 检查文件是否上传完成
 				Method:  http.MethodPost,
 				Path:    "/media/upload/complete",
 				Handler: media.CompleteUploadHandler(serverCtx),
 			},
 			{
-				// create upload presigned url
+				// 创建预签地址
 				Method:  http.MethodPost,
 				Path:    "/media/upload/presign",
 				Handler: media.CreateUploadPresignHandler(serverCtx),
@@ -34,19 +34,19 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				// captcha
+				// 图片验证码
 				Method:  http.MethodGet,
 				Path:    "/captcha",
 				Handler: na.CaptchaHandler(serverCtx),
 			},
 			{
-				// login
+				// 登录接口
 				Method:  http.MethodPost,
 				Path:    "/user/login",
 				Handler: na.LoginHandler(serverCtx),
 			},
 			{
-				// register
+				// 注册接口
 				Method:  http.MethodPost,
 				Path:    "/user/register",
 				Handler: na.RegisterHandler(serverCtx),

@@ -28,6 +28,7 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 	handler.RegisterHandlers(server, ctx)
 	httpx.SetErrorHandler(xcode.ErrHandler)
+	httpx.SetOkHandler(xcode.OkHandler) // 拦截器
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
 	server.Start()
 }

@@ -38,4 +38,12 @@ type (
         ObjectKey string `json:"objectKey"`
         PreviewUrl string `json:"previewUrl"`
     }
+
+    CreateMediaReq {
+
+    }
+
+    CreateMediaReep {
+
+    }
 )

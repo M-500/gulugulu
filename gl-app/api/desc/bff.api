@@ -19,15 +19,15 @@ import (
 	group:  na
 )
 service gulu {
-	@doc "captcha"
+	@doc "图片验证码"
 	@handler captcha
 	get /captcha returns (CaptchaResp)
 
-	@doc "login"
+	@doc "登录接口"
 	@handler login
 	post /user/login (LoginReq) returns (LoginResp)
 
-	@doc "register"
+	@doc "注册接口"
 	@handler register
 	post /user/register (RegisterReq) returns (RegisterResp)
 }
@@ -39,12 +39,17 @@ service gulu {
 	jwt:    JwtAuth
 )
 service gulu {
-	@doc "create upload presigned url"
+	@doc "创建预签地址"
 	@handler createUploadPresign
 	post /media/upload/presign (CreateUploadPresignReq) returns (CreateUploadPresignResp)
 
-	@doc "complete direct upload"
+	@doc "检查文件是否上传完成"
 	@handler completeUpload
 	post /media/upload/complete (CompleteUploadReq) returns (CompleteUploadResp)
+
+
+	@doc "发布作品"
+	@handler createMedia
+	post /media/create (CreateMediaReq) returns (CreateMediaReep)
 }
 
