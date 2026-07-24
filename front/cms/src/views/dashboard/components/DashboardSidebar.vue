@@ -10,7 +10,7 @@
       >
         <span class="menu-icon">{{ item.icon }}</span>
         <span>{{ item.label }}</span>
-        <span v-if="item.key === 'review'" class="menu-count">6</span>
+        <span v-if="item.key === 'review' && reviewCount" class="menu-count">{{ reviewCount }}</span>
       </button>
     </nav>
 
@@ -37,6 +37,10 @@ defineProps({
   open: {
     type: Boolean,
     default: false
+  },
+  reviewCount: {
+    type: Number,
+    default: 0
   }
 })
 
