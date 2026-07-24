@@ -312,16 +312,6 @@
   font-size: 11px;
 }
 
-.work-card__footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 13px;
-  margin-top: auto;
-  color: #a6abb3;
-  font-size: 11px;
-}
-
 .works-state-card {
   display: grid;
   min-height: 360px;

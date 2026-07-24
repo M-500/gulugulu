@@ -63,10 +63,6 @@ type (
         CoverUrl string `json:"coverUrl"`
         DurationMs int64 `json:"durationMs"`
         Visibility string `json:"visibility"`
-        ViewCount int64 `json:"viewCount"`
-        LikeCount int64 `json:"likeCount"`
-        FavoriteCount int64 `json:"favoriteCount"`
-        ShareCount int64 `json:"shareCount"`
         ReviewStatus string `json:"reviewStatus"`
         PublishStatus string `json:"publishStatus"`
         ReviewReason string `json:"reviewReason,optional"`
@@ -99,6 +95,64 @@ type (
     CreatorWorkMutationResp {
         WorkId int64 `json:"workId"`
         Updated bool `json:"updated"`
+    }
+
+    AuditWorkListReq {
+        Page int64 `form:"page,optional"`
+        PageSize int64 `form:"pageSize,optional"`
+        Status string `form:"status,optional"`
+        Type string `form:"type,optional"`
+        Keyword string `form:"keyword,optional"`
+    }
+
+    AuditWorkListItem {
+        WorkId int64 `json:"workId"`
+        Type string `json:"type"`
+        Title string `json:"title"`
+        ContentExcerpt string `json:"contentExcerpt"`
+        CoverUrl string `json:"coverUrl"`
+        DurationMs int64 `json:"durationMs"`
+        Visibility string `json:"visibility"`
+        AuthorId int64 `json:"authorId"`
+        AuthorName string `json:"authorName"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+        ReviewReason string `json:"reviewReason,optional"`
+        SubmittedAt string `json:"submittedAt"`
+        ReviewedAt string `json:"reviewedAt,optional"`
+    }
+
+    AuditWorkListResp {
+        Total int64 `json:"total"`
+        Page int64 `json:"page"`
+        PageSize int64 `json:"pageSize"`
+        PendingCount int64 `json:"pendingCount"`
+        ApprovedCount int64 `json:"approvedCount"`
+        RejectedCount int64 `json:"rejectedCount"`
+        List []AuditWorkListItem `json:"list"`
+    }
+
+    AuditWorkDetailResp {
+        WorkId int64 `json:"workId"`
+        Type string `json:"type"`
+        Title string `json:"title"`
+        Content string `json:"content"`
+        CoverUrl string `json:"coverUrl"`
+        DurationMs int64 `json:"durationMs"`
+        VideoPlaylist string `json:"videoPlaylist,optional"`
+        Visibility string `json:"visibility"`
+        Original bool `json:"original"`
+        AuthorId int64 `json:"authorId"`
+        AuthorName string `json:"authorName"`
+        AuthorEmail string `json:"authorEmail"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+        ReviewReason string `json:"reviewReason,optional"`
+        ScheduledAt string `json:"scheduledAt,optional"`
+        SubmittedAt string `json:"submittedAt"`
+        ReviewedAt string `json:"reviewedAt,optional"`
+        Assets []WorkAssetItem `json:"assets"`
+        Topics []WorkTopicItem `json:"topics"`
     }
 
     WorkDetailResp {

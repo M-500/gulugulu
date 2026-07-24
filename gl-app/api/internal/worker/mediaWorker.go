@@ -11,19 +11,27 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/logx"
+	corequeue "github.com/zeromicro/go-zero/core/queue"
+	"github.com/zeromicro/go-zero/core/service"
 	"gl-app/api/internal/queue"
 	"gl-app/api/internal/svc"
 )
 
 type MediaWorker struct {
-	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	ctx        context.Context
+	cancel     context.CancelFunc
+	svcCtx     *svc.ServiceContext
+	kafkaQueue corequeue.MessageQueue
+	stopOnce   sync.Once
 }
+
+var _ service.Service = (*MediaWorker)(nil)
 
 type processAsset struct {
 	ID              int64  `db:"id"`
@@ -49,15 +57,23 @@ type probeOutput struct {
 }
 
 func NewMediaWorker(ctx context.Context, svcCtx *svc.ServiceContext) *MediaWorker {
-	return &MediaWorker{ctx: ctx, svcCtx: svcCtx}
+	workerCtx, cancel := context.WithCancel(ctx)
+	mediaWorker := &MediaWorker{
+		ctx:    workerCtx,
+		cancel: cancel,
+		svcCtx: svcCtx,
+	}
+	mediaWorker.kafkaQueue = kq.MustNewQueue(svcCtx.Config.MediaQueue.KqConf, mediaWorker)
+	return mediaWorker
 }
 
-func (w *MediaWorker) Run() error {
+// Start 实现 service.Service，由 servicegroup 与 HTTP 服务一同启动。
+func (w *MediaWorker) Start() {
 	if err := w.ensureFormalBucket(); err != nil {
-		return err
+		logx.Must(err)
 	}
 	if err := os.MkdirAll(w.svcCtx.Config.MediaWorker.TempDir, 0o750); err != nil {
-		return fmt.Errorf("创建媒体临时目录失败: %w", err)
+		logx.Must(fmt.Errorf("创建媒体临时目录失败: %w", err))
 	}
 	// A worker can die after claiming a database task but before committing the
 	// Kafka offset. Re-open only very old tasks to avoid competing with a
@@ -67,13 +83,16 @@ func (w *MediaWorker) Run() error {
 	go w.runDispatcher()
 	go w.runScheduler()
 
-	kafkaQueue := kq.MustNewQueue(w.svcCtx.Config.MediaQueue.KqConf, w)
-	go func() {
-		<-w.ctx.Done()
-		kafkaQueue.Stop()
-	}()
-	kafkaQueue.Start()
-	return w.ctx.Err()
+	logx.Info("Kafka媒体消费者已启动")
+	w.kafkaQueue.Start()
+}
+
+// Stop 实现 service.Service，确保系统退出时停止后台扫描和Kafka消费。
+func (w *MediaWorker) Stop() {
+	w.stopOnce.Do(func() {
+		w.cancel()
+		w.kafkaQueue.Stop()
+	})
 }
 
 // Consume implements kq.ConsumeHandler.

@@ -93,7 +93,7 @@ PUT    /api/v1/creator/works/:workId/visibility
 DELETE /api/v1/creator/works/:workId
 ```
 
-列表会额外返回视频时长、作品可见性，以及浏览、点赞、收藏和转发次数。
+列表会额外返回视频时长和作品可见性。
 
 ## 启动
 
@@ -111,19 +111,18 @@ cd deploy
 docker compose up -d redis kafka minio minio-init
 ```
 
-本地开发建议使用统一命令同时启动 API 和 Worker，避免媒体任务入队后没有消费者：
+API 已通过 go-zero `servicegroup` 集成 Kafka 媒体消费者，启动系统时会同时启动
+HTTP 服务、媒体消费和后台调度：
 
 ```bash
 make dev
 ```
 
-也可以分别启动：
+等价命令：
 
 ```bash
 go run ./api -f api/etc/gulu.yaml
-go run ./api/cmd/mediaworker -f api/etc/gulu.yaml
 ```
 
-视频转码由 Worker 从 Kafka 消费并异步执行。仅启动 API 时，视频会一直停留在
-`pending / waiting_process`，不会进入待审核列表。Worker 所在环境必须安装
-`ffmpeg` 和 `ffprobe`。
+视频转码仍然由 Kafka 异步管理，不会阻塞发布接口。API 所在环境必须安装
+`ffmpeg` 和 `ffprobe`，系统退出时 servicegroup 会统一停止 HTTP 服务和消费者。

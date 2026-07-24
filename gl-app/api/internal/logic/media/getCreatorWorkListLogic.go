@@ -82,7 +82,7 @@ func (l *GetCreatorWorkListLogic) GetCreatorWorkList(req *types.CreatorWorkListR
 	var rows []creatorWorkRow
 	offset := (page - 1) * pageSize
 	listQuery := `SELECT
-			w.id,w.type,w.title,w.visibility,w.view_count,w.like_count,w.favorite_count,w.share_count,
+			w.id,w.type,w.title,w.visibility,
 			w.review_status,w.publish_status,w.review_reason,
 			w.scheduled_at,w.published_at,w.created_at,
 			COALESCE(video_asset.duration_ms,0) AS duration_ms,
@@ -107,10 +107,6 @@ func (l *GetCreatorWorkListLogic) GetCreatorWorkList(req *types.CreatorWorkListR
 			Title:         row.Title,
 			DurationMs:    row.DurationMs,
 			Visibility:    row.Visibility,
-			ViewCount:     row.ViewCount,
-			LikeCount:     row.LikeCount,
-			FavoriteCount: row.FavoriteCount,
-			ShareCount:    row.ShareCount,
 			ReviewStatus:  row.ReviewStatus,
 			PublishStatus: row.PublishStatus,
 			ReviewReason:  row.ReviewReason,
@@ -151,10 +147,6 @@ type creatorWorkRow struct {
 	Title          string       `db:"title"`
 	DurationMs     int64        `db:"duration_ms"`
 	Visibility     string       `db:"visibility"`
-	ViewCount      int64        `db:"view_count"`
-	LikeCount      int64        `db:"like_count"`
-	FavoriteCount  int64        `db:"favorite_count"`
-	ShareCount     int64        `db:"share_count"`
 	ReviewStatus   string       `db:"review_status"`
 	PublishStatus  string       `db:"publish_status"`
 	ReviewReason   string       `db:"review_reason"`

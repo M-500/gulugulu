@@ -83,5 +83,13 @@ service gulu {
 	@doc "审核作品"
 	@handler auditWork
 	post /works/:workId/audit (AuditWorkReq) returns (AuditWorkResp)
+
+	@doc "查询审核中心作品列表"
+	@handler getAuditWorkList
+	get /audit/works (AuditWorkListReq) returns (AuditWorkListResp)
+
+	@doc "查询审核作品详情"
+	@handler getAuditWorkDetail
+	get /audit/works/:workId (WorkIdReq) returns (AuditWorkDetailResp)
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -32,8 +31,8 @@ func NewAuditWorkLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AuditWo
 
 func (l *AuditWorkLogic) AuditWork(req *types.AuditWorkReq) (resp *types.AuditWorkResp, err error) {
 	reviewerID := ctxdata.GetUidFromCtx(l.ctx)
-	if !slices.Contains(l.svcCtx.Config.Audit.AdminUserIds, reviewerID) {
-		return nil, fmt.Errorf("当前用户没有审核权限")
+	if err = ensureAuditPermission(l.svcCtx, reviewerID); err != nil {
+		return nil, err
 	}
 	decision := strings.ToLower(strings.TrimSpace(req.Decision))
 	if decision != "approve" && decision != "reject" {

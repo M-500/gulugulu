@@ -15,6 +15,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// 查询审核中心作品列表
+				Method:  http.MethodGet,
+				Path:    "/audit/works",
+				Handler: media.GetAuditWorkListHandler(serverCtx),
+			},
+			{
+				// 查询审核作品详情
+				Method:  http.MethodGet,
+				Path:    "/audit/works/:workId",
+				Handler: media.GetAuditWorkDetailHandler(serverCtx),
+			},
+			{
 				// 查询当前用户所有处理完成的作品
 				Method:  http.MethodGet,
 				Path:    "/creator/works",

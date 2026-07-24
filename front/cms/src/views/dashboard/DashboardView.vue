@@ -10,6 +10,7 @@
       <DashboardSidebar
         :open="menuOpen"
         :active-item="activeMenu"
+        :review-count="reviewCount"
         @select="handleMenuSelect"
       />
 
@@ -25,6 +26,7 @@
         <DashboardOverview v-if="activeMenu === 'home'" />
         <PublishView v-else-if="activeMenu === 'publish'" />
         <WorksManagementView v-else-if="activeMenu === 'works'" />
+        <ReviewCenterView v-else-if="activeMenu === 'review'" @count-change="reviewCount = $event" />
         <DashboardPlaceholder v-else :menu="currentMenu" />
       </main>
     </div>
@@ -43,6 +45,7 @@ import DashboardPlaceholder from './components/DashboardPlaceholder.vue'
 import DashboardSidebar from './components/DashboardSidebar.vue'
 import PublishView from '../publish/PublishView.vue'
 import WorksManagementView from '../works/WorksManagementView.vue'
+import ReviewCenterView from '../review/ReviewCenterView.vue'
 import { dashboardMenus } from './dashboardMenus'
 
 const router = useRouter()
@@ -50,6 +53,7 @@ const authStore = useAuthStore()
 
 const activeMenu = ref('home')
 const menuOpen = ref(false)
+const reviewCount = ref(0)
 const currentMenu = computed(() => dashboardMenus.find((item) => item.key === activeMenu.value))
 
 function handleMenuSelect(key) {

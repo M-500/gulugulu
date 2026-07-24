@@ -62,10 +62,6 @@ type (
 		ReviewedBy        int64          `db:"reviewed_by"`         // 审核员用户ID
 		ReviewedAt        sql.NullTime   `db:"reviewed_at"`         // 审核完成时间
 		ReviewReason      string         `db:"review_reason"`       // 审核意见或拒绝原因
-		ViewCount         int64          `db:"view_count"`          // 作品浏览次数
-		LikeCount         int64          `db:"like_count"`          // 作品点赞次数
-		FavoriteCount     int64          `db:"favorite_count"`      // 作品收藏次数
-		ShareCount        int64          `db:"share_count"`         // 作品转发次数
 		IdempotencyKey    string         `db:"idempotency_key"`     // 用户维度的发布幂等键
 	}
 )
@@ -133,8 +129,8 @@ func (m *defaultWorkModel) Insert(ctx context.Context, data *Work) (sql.Result, 
 	workIdKey := fmt.Sprintf("%s%v", cacheWorkIdPrefix, data.Id)
 	workUserIdIdempotencyKeyKey := fmt.Sprintf("%s%v:%v", cacheWorkUserIdIdempotencyKeyPrefix, data.UserId, data.IdempotencyKey)
 	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, workRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.DeletedAt, data.UserId, data.Type, data.Title, data.Content, data.Visibility, data.VisibilityUserIds, data.CollectionId, data.Original, data.CoverAssetId, data.ProcessStatus, data.ReviewStatus, data.PublishStatus, data.ScheduledAt, data.PublishedAt, data.ReviewedBy, data.ReviewedAt, data.ReviewReason, data.ViewCount, data.LikeCount, data.FavoriteCount, data.ShareCount, data.IdempotencyKey)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, workRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.DeletedAt, data.UserId, data.Type, data.Title, data.Content, data.Visibility, data.VisibilityUserIds, data.CollectionId, data.Original, data.CoverAssetId, data.ProcessStatus, data.ReviewStatus, data.PublishStatus, data.ScheduledAt, data.PublishedAt, data.ReviewedBy, data.ReviewedAt, data.ReviewReason, data.IdempotencyKey)
 	}, workIdKey, workUserIdIdempotencyKeyKey)
 	return ret, err
 }
@@ -149,7 +145,7 @@ func (m *defaultWorkModel) Update(ctx context.Context, newData *Work) error {
 	workUserIdIdempotencyKeyKey := fmt.Sprintf("%s%v:%v", cacheWorkUserIdIdempotencyKeyPrefix, data.UserId, data.IdempotencyKey)
 	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, workRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.UserId, newData.Type, newData.Title, newData.Content, newData.Visibility, newData.VisibilityUserIds, newData.CollectionId, newData.Original, newData.CoverAssetId, newData.ProcessStatus, newData.ReviewStatus, newData.PublishStatus, newData.ScheduledAt, newData.PublishedAt, newData.ReviewedBy, newData.ReviewedAt, newData.ReviewReason, newData.ViewCount, newData.LikeCount, newData.FavoriteCount, newData.ShareCount, newData.IdempotencyKey, newData.Id)
+		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.UserId, newData.Type, newData.Title, newData.Content, newData.Visibility, newData.VisibilityUserIds, newData.CollectionId, newData.Original, newData.CoverAssetId, newData.ProcessStatus, newData.ReviewStatus, newData.PublishStatus, newData.ScheduledAt, newData.PublishedAt, newData.ReviewedBy, newData.ReviewedAt, newData.ReviewReason, newData.IdempotencyKey, newData.Id)
 	}, workIdKey, workUserIdIdempotencyKeyKey)
 	return err
 }

@@ -30,12 +30,6 @@
       <p v-else class="work-card__status-copy">{{ statusMeta.description }}</p>
       <time :datetime="work.createdAt">{{ formatDate(work.createdAt) }}</time>
 
-      <footer class="work-card__footer">
-        <span title="浏览次数">◉ {{ formatCount(work.viewCount) }}</span>
-        <span title="点赞次数">♡ {{ formatCount(work.likeCount) }}</span>
-        <span title="收藏次数">☆ {{ formatCount(work.favoriteCount) }}</span>
-        <span title="转发次数">♧ {{ formatCount(work.shareCount) }}</span>
-      </footer>
     </div>
   </article>
 </template>
@@ -88,11 +82,4 @@ function formatDuration(durationMs) {
   return hours ? `${String(hours).padStart(2, '0')}:${result}` : result
 }
 
-function formatCount(value) {
-  const count = Number(value) || 0
-  if (count >= 10000) {
-    return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}万`
-  }
-  return count
-}
 </script>
