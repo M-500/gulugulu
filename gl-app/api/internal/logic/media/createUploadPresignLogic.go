@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"mime"
+	"net"
+	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"gl-app/api/internal/models/media"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
@@ -17,6 +21,12 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
+
+type requestContextKey struct{}
+
+func ContextWithRequest(ctx context.Context, request *http.Request) context.Context {
+	return context.WithValue(ctx, requestContextKey{}, request)
+}
 
 type CreateUploadPresignLogic struct {
 	logx.Logger
@@ -77,9 +87,18 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 
 	resourceName := fmt.Sprintf("%s-%s", uuid.NewString(), sanitizeResourceName(originName))
 	objectKey := fmt.Sprintf("%d/%s/%s", userId, time.Now().Format("20060102"), resourceName)
-	uploadUrl, err := l.svcCtx.MinioClient.PresignedPutObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second)
+	presignClient, err := l.presignClient()
+	if err != nil {
+		return nil, err
+	}
+
+	uploadUrl, err := presignClient.PresignedPutObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("生成预签上传地址失败: %w", err)
+	}
+	previewUrl, err := presignClient.PresignedGetObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second, nil)
+	if err != nil {
+		return nil, fmt.Errorf("生成预览地址失败: %w", err)
 	}
 
 	result, err := l.svcCtx.MediaAssetRepo.Insert(l.ctx, &media.MediaAsset{
@@ -102,16 +121,57 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 	}
 
 	return &types.CreateUploadPresignResp{
-		MediaId:   mediaId,
-		Bucket:    bucket,
-		ObjectKey: objectKey,
-		UploadUrl: uploadUrl.String(),
-		Method:    "PUT",
-		ExpiresIn: expiresIn,
+		MediaId:    mediaId,
+		Bucket:     bucket,
+		ObjectKey:  objectKey,
+		UploadUrl:  uploadUrl.String(),
+		PreviewUrl: previewUrl.String(),
+		Method:     "PUT",
+		ExpiresIn:  expiresIn,
 		Headers: map[string]string{
 			"Content-Type": contentType,
 		},
 	}, nil
+}
+
+func (l *CreateUploadPresignLogic) presignClient() (*minio.Client, error) {
+	endpoint := l.publicEndpoint()
+
+	return minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(l.svcCtx.Config.Minio.AccessKeyID, l.svcCtx.Config.Minio.SecretAccessKey, ""),
+		Secure: l.svcCtx.Config.Minio.UseSSL,
+	})
+}
+
+func (l *CreateUploadPresignLogic) publicEndpoint() string {
+	endpoint := l.svcCtx.Config.Minio.Endpoint
+
+	request := requestFromContext(l.ctx)
+	if request == nil {
+		return endpoint
+	}
+
+	originValue := request.Header.Get("Origin")
+	if originValue == "" {
+		originValue = request.Header.Get("Referer")
+	}
+
+	originUrl, err := url.Parse(originValue)
+	if err != nil || originUrl.Hostname() == "" {
+		return endpoint
+	}
+
+	_, endpointPort, err := net.SplitHostPort(endpoint)
+	if err != nil || endpointPort == "" {
+		return endpoint
+	}
+
+	return net.JoinHostPort(originUrl.Hostname(), endpointPort)
+}
+
+func requestFromContext(ctx context.Context) *http.Request {
+	request, _ := ctx.Value(requestContextKey{}).(*http.Request)
+	return request
 }
 
 func (l *CreateUploadPresignLogic) ensureBucket(bucket string) error {

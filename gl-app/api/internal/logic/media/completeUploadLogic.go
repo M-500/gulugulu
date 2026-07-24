@@ -3,6 +3,7 @@ package media
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"gl-app/api/internal/svc"
@@ -60,11 +61,20 @@ func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (resp
 	if err := l.svcCtx.MediaAssetRepo.Update(l.ctx, asset); err != nil {
 		return nil, fmt.Errorf("更新媒体素材状态失败: %w", err)
 	}
+	expiresIn := l.svcCtx.Config.Minio.PresignExpire
+	if expiresIn <= 0 {
+		expiresIn = 900
+	}
+	previewUrl, err := l.svcCtx.MinioClient.PresignedGetObject(l.ctx, asset.Bucket, asset.ObjectKey, time.Duration(expiresIn)*time.Second, nil)
+	if err != nil {
+		return nil, fmt.Errorf("生成预览地址失败: %w", err)
+	}
 
 	return &types.CompleteUploadResp{
-		MediaId:   asset.Id,
-		Status:    asset.Status,
-		Bucket:    asset.Bucket,
-		ObjectKey: asset.ObjectKey,
+		MediaId:    asset.Id,
+		Status:     asset.Status,
+		Bucket:     asset.Bucket,
+		ObjectKey:  asset.ObjectKey,
+		PreviewUrl: previewUrl.String(),
 	}, nil
 }

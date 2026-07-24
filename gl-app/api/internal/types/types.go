@@ -12,10 +12,11 @@ type CompleteUploadReq struct {
 }
 
 type CompleteUploadResp struct {
-	MediaId   int64  `json:"mediaId"`
-	Status    string `json:"status"`
-	Bucket    string `json:"bucket"`
-	ObjectKey string `json:"objectKey"`
+	MediaId    int64  `json:"mediaId"`
+	Status     string `json:"status"`
+	Bucket     string `json:"bucket"`
+	ObjectKey  string `json:"objectKey"`
+	PreviewUrl string `json:"previewUrl"`
 }
 
 type CreateUploadPresignReq struct {
@@ -25,13 +26,14 @@ type CreateUploadPresignReq struct {
 }
 
 type CreateUploadPresignResp struct {
-	MediaId   int64             `json:"mediaId"`
-	Bucket    string            `json:"bucket"`
-	ObjectKey string            `json:"objectKey"`
-	UploadUrl string            `json:"uploadUrl"`
-	Method    string            `json:"method"`
-	ExpiresIn int64             `json:"expiresIn"`
-	Headers   map[string]string `json:"headers"`
+	MediaId    int64             `json:"mediaId"`
+	Bucket     string            `json:"bucket"`
+	ObjectKey  string            `json:"objectKey"`
+	UploadUrl  string            `json:"uploadUrl"`
+	PreviewUrl string            `json:"previewUrl"`
+	Method     string            `json:"method"`
+	ExpiresIn  int64             `json:"expiresIn"`
+	Headers    map[string]string `json:"headers"`
 }
 
 type LoginReq struct {

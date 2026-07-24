@@ -20,6 +20,7 @@ type (
         Bucket string `json:"bucket"`
         ObjectKey string `json:"objectKey"`
         UploadUrl string `json:"uploadUrl"`
+        PreviewUrl string `json:"previewUrl"`
         Method string `json:"method"`
         ExpiresIn int64 `json:"expiresIn"`
         Headers map[string]string `json:"headers"`
@@ -35,5 +36,6 @@ type (
         Status string `json:"status"`
         Bucket string `json:"bucket"`
         ObjectKey string `json:"objectKey"`
+        PreviewUrl string `json:"previewUrl"`
     }
 )

@@ -63,7 +63,7 @@
             <div v-for="asset in currentDraft.assets" :key="asset.assetId" class="asset-item">
               <span :class="['asset-kind', `asset-kind--${asset.kind}`]">{{ asset.kind === 'video' ? '视频' : '图片' }}</span>
               <span class="asset-name">{{ asset.name }}</span>
-              <small>{{ formatSize(asset.size) }}</small>
+              <small>{{ formatSize(asset.size) }} · {{ asset.uploadStatus === 'uploaded' ? `已上传 #${asset.mediaId}` : '本地草稿' }}</small>
             </div>
           </div>
         </section>
@@ -237,6 +237,11 @@
       </div>
     </div>
 
+    <div v-if="uploading" class="upload-progress">
+      <strong>正在上传素材</strong>
+      <span>{{ uploadMessage }}</span>
+    </div>
+
     <div v-if="draftDrawerOpen" class="drawer-mask" @click.self="draftDrawerOpen = false">
       <aside class="draft-drawer">
         <div class="drawer-header">
@@ -290,6 +295,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
+import { completeUpload, createUploadPresign, uploadToObjectStorage } from '@/api/media'
 import { usePublishDraftStore } from '@/stores/publishDrafts'
 
 import { activityTopics, defaultTopics, publishTypes } from './publishOptions'
@@ -303,6 +309,8 @@ const draftDrawerOpen = ref(false)
 const collectionOpen = ref(false)
 const collectionName = ref('')
 const pkCover = ref(false)
+const uploading = ref(false)
+const uploadMessage = ref('')
 
 const form = reactive({
   title: '',
@@ -376,7 +384,41 @@ async function createDraftFromFiles(fileList, draftType = activeType.value) {
     return
   }
 
-  await draftStore.createDraft(draftType, files)
+  uploading.value = true
+  uploadMessage.value = `准备上传 ${files.length} 个素材`
+
+  try {
+    const uploadedAssets = []
+
+    for (const [index, file] of files.entries()) {
+      uploadMessage.value = `正在上传 ${index + 1}/${files.length}：${file.name}`
+      const presign = await createUploadPresign({
+        resourceType: file.type.startsWith('video/') ? 'Video' : 'Image',
+        fileName: file.name,
+        contentType: 'application/octet-stream'
+      })
+
+      await uploadToObjectStorage(file, presign)
+
+      const completed = await completeUpload({
+        mediaId: presign.mediaId,
+        objectKey: presign.objectKey
+      })
+
+      uploadedAssets.push({
+        mediaId: completed.mediaId,
+        bucket: completed.bucket,
+        objectKey: completed.objectKey,
+        previewUrl: completed.previewUrl || presign.previewUrl,
+        status: completed.status
+      })
+    }
+
+    await draftStore.createDraft(draftType, files, uploadedAssets)
+  } finally {
+    uploading.value = false
+    uploadMessage.value = ''
+  }
 }
 
 async function openDraftDrawer() {
@@ -1078,6 +1120,33 @@ function formatSize(size) {
   z-index: 60;
   inset: 0;
   background: rgba(17, 24, 39, 0.42);
+}
+
+.upload-progress {
+  position: fixed;
+  z-index: 70;
+  right: 28px;
+  bottom: 28px;
+  display: grid;
+  gap: 6px;
+  min-width: 260px;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.26);
+  padding: 16px 18px;
+}
+
+.upload-progress strong {
+  font-size: 14px;
+}
+
+.upload-progress span {
+  overflow: hidden;
+  color: #d1d5db;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .draft-drawer {

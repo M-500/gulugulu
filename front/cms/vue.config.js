@@ -8,6 +8,10 @@ module.exports = defineConfig({
       '/na': {
         target: process.env.VUE_APP_PROXY_TARGET || 'http://localhost:8888',
         changeOrigin: true
+      },
+      '/api': {
+        target: process.env.VUE_APP_PROXY_TARGET || 'http://localhost:8888',
+        changeOrigin: true
       }
     }
   }

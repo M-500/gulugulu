@@ -100,10 +100,16 @@ function normalizeDraft(meta, assets = []) {
   return {
     ...meta,
     savedText: formatDate(meta.updatedAt),
-    assets: assets.map((asset) => ({
-      ...asset,
-      url: URL.createObjectURL(asset.blob)
-    }))
+    assets: assets.map((asset) => {
+      const localUrl = asset.blob ? URL.createObjectURL(asset.blob) : ''
+
+      return {
+        ...asset,
+        url: localUrl || asset.previewUrl || '',
+        localUrl,
+        previewUrl: asset.previewUrl || ''
+      }
+    })
   }
 }
 
@@ -115,7 +121,12 @@ function toAssetMeta(asset) {
     type: asset.type,
     size: asset.size,
     kind: asset.kind,
-    order: asset.order
+    order: asset.order,
+    mediaId: asset.mediaId,
+    bucket: asset.bucket,
+    objectKey: asset.objectKey,
+    previewUrl: asset.previewUrl,
+    uploadStatus: asset.uploadStatus
   }
 }
 
@@ -160,7 +171,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         .sort((a, b) => b.updatedAt - a.updatedAt)
       this.loaded = true
     },
-    async createDraft(type, files) {
+    async createDraft(type, files, uploadedAssets = []) {
       const now = Date.now()
       const id = createId('draft')
       const assets = Array.from(files).map((file, index) => ({
@@ -171,7 +182,12 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         size: file.size,
         kind: fileKind(file),
         order: index,
-        blob: file
+        blob: file,
+        mediaId: uploadedAssets[index]?.mediaId || 0,
+        bucket: uploadedAssets[index]?.bucket || '',
+        objectKey: uploadedAssets[index]?.objectKey || '',
+        previewUrl: uploadedAssets[index]?.previewUrl || '',
+        uploadStatus: uploadedAssets[index]?.status || 'local'
       }))
 
       const draft = {
@@ -264,8 +280,8 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
     },
     releaseCurrentUrls() {
       this.currentDraft?.assets?.forEach((asset) => {
-        if (asset.url) {
-          URL.revokeObjectURL(asset.url)
+        if (asset.localUrl) {
+          URL.revokeObjectURL(asset.localUrl)
         }
       })
     }
