@@ -29,16 +29,3 @@ export const publishTypes = [
 ]
 
 export const defaultTopics = ['生活美学', '日常文案', '人生的意义', '每天都有值得记录的瞬间', '快乐瞬间', '我的生活碎片']
-
-export const activityTopics = [
-  {
-    title: '# 世界杯聊个球',
-    action: '添加话题',
-    image: '世'
-  },
-  {
-    title: '# 点亮户外新地图',
-    action: '添加话题',
-    image: '户'
-  }
-]

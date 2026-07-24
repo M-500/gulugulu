@@ -96,20 +96,22 @@ function fileKind(file) {
   return 'file'
 }
 
+function normalizeAsset(asset) {
+  const localUrl = asset.blob ? URL.createObjectURL(asset.blob) : ''
+
+  return {
+    ...asset,
+    url: localUrl || asset.previewUrl || '',
+    localUrl,
+    previewUrl: asset.previewUrl || ''
+  }
+}
+
 function normalizeDraft(meta, assets = []) {
   return {
     ...meta,
     savedText: formatDate(meta.updatedAt),
-    assets: assets.map((asset) => {
-      const localUrl = asset.blob ? URL.createObjectURL(asset.blob) : ''
-
-      return {
-        ...asset,
-        url: localUrl || asset.previewUrl || '',
-        localUrl,
-        previewUrl: asset.previewUrl || ''
-      }
-    })
+    assets: assets.map(normalizeAsset)
   }
 }
 
@@ -141,11 +143,14 @@ function toDraftForStore(draft) {
     allowComment: draft.allowComment,
     original: draft.original,
     scheduled: draft.scheduled,
-    topics: draft.topics,
+    // Pinia deeply wraps arrays and their entries with Vue proxies. IndexedDB
+    // uses the structured clone algorithm and cannot persist those proxies, so
+    // keep the storage boundary strictly plain-data-only.
+    topics: Array.from(draft.topics || [], (topic) => String(topic)),
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
     coverAssetId: draft.coverAssetId,
-    assetMetas: draft.assetMetas
+    assetMetas: Array.from(draft.assetMetas || [], toAssetMeta)
   }
 }
 
@@ -252,6 +257,73 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         assets
       }
       await this.loadDrafts()
+    },
+    async appendImages(files, uploadedAssets = []) {
+      if (!this.currentDraft || this.currentDraft.type !== 'imageText') {
+        return
+      }
+
+      const remaining = Math.max(0, 19 - this.currentDraft.assets.length)
+      const selectedFiles = Array.from(files).filter((file) => file.type.startsWith('image/')).slice(0, remaining)
+      const startOrder = this.currentDraft.assets.length
+      const assets = selectedFiles.map((file, index) => ({
+        assetId: createId('asset'),
+        draftId: this.currentDraft.id,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        kind: 'image',
+        order: startOrder + index,
+        blob: file,
+        mediaId: uploadedAssets[index]?.mediaId || 0,
+        bucket: uploadedAssets[index]?.bucket || '',
+        objectKey: uploadedAssets[index]?.objectKey || '',
+        previewUrl: uploadedAssets[index]?.previewUrl || '',
+        uploadStatus: uploadedAssets[index]?.status || 'local'
+      }))
+
+      if (!assets.length) {
+        return
+      }
+
+      await runStore(ASSET_STORE, 'readwrite', (store) => {
+        assets.forEach((asset) => store.put(asset))
+      })
+
+      const normalizedAssets = assets.map(normalizeAsset)
+      const nextAssets = [...this.currentDraft.assets, ...normalizedAssets]
+      await this.saveCurrentDraft({
+        assets: nextAssets,
+        assetMetas: nextAssets.map(toAssetMeta)
+      })
+    },
+    async deleteCurrentImage(assetId) {
+      if (!this.currentDraft || this.currentDraft.type !== 'imageText') {
+        return
+      }
+
+      const target = this.currentDraft.assets.find((asset) => asset.assetId === assetId)
+      const nextAssets = this.currentDraft.assets
+        .filter((asset) => asset.assetId !== assetId)
+        .map((asset, index) => ({ ...asset, order: index }))
+
+      if (!target) {
+        return
+      }
+
+      if (target.localUrl) {
+        URL.revokeObjectURL(target.localUrl)
+      }
+
+      await runStore(ASSET_STORE, 'readwrite', (store) => store.delete(assetId))
+      await runStore(ASSET_STORE, 'readwrite', (store) => {
+        nextAssets.forEach((asset) => store.put({ ...toAssetMeta(asset), blob: asset.blob }))
+      })
+      await this.saveCurrentDraft({
+        assets: nextAssets,
+        assetMetas: nextAssets.map(toAssetMeta),
+        coverAssetId: this.currentDraft.coverAssetId === assetId ? (nextAssets[0]?.assetId || '') : this.currentDraft.coverAssetId
+      })
     },
     async deleteDraft(id) {
       const assets = await getAssetsByDraftId(id)

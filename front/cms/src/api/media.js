@@ -2,6 +2,8 @@ import axios from 'axios'
 
 import http from './http'
 
+
+// 获取上传预签名信息
 export function createUploadPresign(data) {
   return http.post('/api/v1/media/upload/presign', {
     resourceType: data.resourceType,
@@ -10,6 +12,7 @@ export function createUploadPresign(data) {
   })
 }
 
+// 检查是否完成上传
 export function completeUpload(data) {
   return http.post('/api/v1/media/upload/complete', {
     mediaId: data.mediaId,

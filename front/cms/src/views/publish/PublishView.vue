@@ -27,7 +27,15 @@
           :cover-asset-id="currentDraft.coverAssetId"
           @select="updateDraft({ coverAssetId: $event })"
         />
-        <PublishComposeCard :form="form" :topics="defaultTopics" @update-form="Object.assign(form, $event)" @persist="persistForm" @toggle-topic="toggleTopic" />
+        <PublishComposeCard
+          :form="form"
+          :topics="defaultTopics"
+          :selected-topics="form.topics"
+          @update-form="Object.assign(form, $event)"
+          @sync-body-topics="syncBodyTopics"
+          @persist="persistForm"
+          @toggle-topic="toggleTopic"
+        />
         <PublishSettings :form="form" @update-form="Object.assign(form, $event)" @persist="persistForm" @open-collection="collectionOpen = true" />
       </div>
 
@@ -79,6 +87,7 @@ const collectionOpen = ref(false)
 const collectionName = ref('')
 const uploading = ref(false)
 const uploadMessage = ref('')
+const bodyTopics = ref([])
 
 const form = reactive({
   title: '',
@@ -114,6 +123,7 @@ watch(currentDraft, (draft) => {
   form.original = Boolean(draft.original)
   form.scheduled = Boolean(draft.scheduled)
   form.topics = [...(draft.topics || [])]
+  bodyTopics.value = extractTopics(draft.body || '')
 }, { immediate: true })
 
 onMounted(() => {
@@ -250,6 +260,17 @@ function toggleTopic(topic) {
 
   form.topics = existed ? form.topics.filter((item) => item !== topic) : [...form.topics, topic]
   persistForm()
+}
+
+function syncBodyTopics(topics) {
+  const manualTopics = form.topics.filter((topic) => !bodyTopics.value.includes(topic))
+  bodyTopics.value = topics
+  form.topics = [...new Set([...manualTopics, ...topics])]
+}
+
+function extractTopics(value) {
+  const matches = value.matchAll(/#([^\s#，。！？、,.!?；;：:]+)/g)
+  return [...new Set(Array.from(matches, (match) => match[1]).filter(Boolean))]
 }
 
 function applyCollection() {

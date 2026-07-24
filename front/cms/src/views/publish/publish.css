@@ -427,6 +427,27 @@
   padding: 0 14px;
 }
 
+.topic-row button.is-selected {
+  background: #fff0f1;
+  color: #e1434e;
+}
+
+.recognized-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -6px;
+}
+
+.recognized-topics span {
+  border-radius: 14px;
+  background: #fff0f1;
+  color: #e1434e;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+}
+
 .compose-actions span {
   margin-left: auto;
   color: #b8bec9;
