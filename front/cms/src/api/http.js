@@ -18,7 +18,19 @@ http.interceptors.request.use((config) => {
 })
 
 http.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const responseData = response.data
+
+    if (!responseData || typeof responseData !== 'object' || !Object.prototype.hasOwnProperty.call(responseData, 'code')) {
+      return Promise.reject(new Error('响应格式错误'))
+    }
+
+    if (responseData.code !== 0) {
+      return Promise.reject(new Error(responseData.message || '请求失败'))
+    }
+
+    return responseData.data
+  },
   (error) => {
     const responseData = error.response?.data
     const message = typeof responseData === 'string'
