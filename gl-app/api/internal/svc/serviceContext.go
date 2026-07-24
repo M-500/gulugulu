@@ -7,13 +7,22 @@ import (
 	"gl-app/api/internal/config"
 	"gl-app/api/internal/models/media"
 	"gl-app/api/internal/models/user"
+	workmodel "gl-app/api/internal/models/work"
+	mediaqueue "gl-app/api/internal/queue"
 )
 
 type ServiceContext struct {
-	Config         config.Config
-	UserRepo       user.UserModel
-	MediaAssetRepo media.MediaAssetModel
-	MinioClient    *minio.Client
+	Config          config.Config
+	UserRepo        user.UserModel
+	MediaAssetRepo  media.MediaAssetModel
+	WorkRepo        workmodel.WorkModel
+	WorkAssetRepo   workmodel.WorkAssetModel
+	TopicRepo       workmodel.TopicModel
+	WorkTopicRepo   workmodel.WorkTopicModel
+	ProcessTaskRepo workmodel.MediaProcessTaskModel
+	SqlConn         sqlx.SqlConn
+	MinioClient     *minio.Client
+	MediaQueue      *mediaqueue.MediaQueue
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -25,11 +34,17 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err)
 	}
-
 	return &ServiceContext{
-		Config:         c,
-		UserRepo:       user.NewUserModel(conn, c.CacheRedis),
-		MediaAssetRepo: media.NewMediaAssetModel(conn, c.CacheRedis),
-		MinioClient:    minioClient,
+		Config:          c,
+		UserRepo:        user.NewUserModel(conn, c.CacheRedis),
+		MediaAssetRepo:  media.NewMediaAssetModel(conn, c.CacheRedis),
+		WorkRepo:        workmodel.NewWorkModel(conn, c.CacheRedis),
+		WorkAssetRepo:   workmodel.NewWorkAssetModel(conn, c.CacheRedis),
+		TopicRepo:       workmodel.NewTopicModel(conn, c.CacheRedis),
+		WorkTopicRepo:   workmodel.NewWorkTopicModel(conn, c.CacheRedis),
+		ProcessTaskRepo: workmodel.NewMediaProcessTaskModel(conn, c.CacheRedis),
+		SqlConn:         conn,
+		MinioClient:     minioClient,
+		MediaQueue:      mediaqueue.NewMediaQueue(c.MediaQueue.Brokers, c.MediaQueue.Topic),
 	}
 }

@@ -11,9 +11,17 @@ CREATE TABLE `media_asset` (
   `content_type` varchar(128) NOT NULL DEFAULT '' COMMENT '文件MIME类型',
   `ext` varchar(32) NOT NULL DEFAULT '' COMMENT '文件扩展名',
   `file_size` bigint unsigned NOT NULL DEFAULT '0' COMMENT '对象存储中的文件大小',
-  `status` varchar(32) NOT NULL DEFAULT 'uploading' COMMENT '上传状态: uploading/uploaded/failed',
+  `status` varchar(32) NOT NULL DEFAULT 'uploading' COMMENT '上传状态: uploading/uploaded/bound/processing/ready/failed/expired',
+  `formal_bucket` varchar(128) NOT NULL DEFAULT '' COMMENT '正式资源桶',
+  `formal_object_key` varchar(512) NOT NULL DEFAULT '' COMMENT '正式资源路径或HLS主播放列表',
+  `duration_ms` bigint unsigned NOT NULL DEFAULT '0' COMMENT '视频时长毫秒',
+  `width` int unsigned NOT NULL DEFAULT '0' COMMENT '宽度',
+  `height` int unsigned NOT NULL DEFAULT '0' COMMENT '高度',
+  `bound_work_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT '绑定作品ID',
+  `process_error` varchar(1024) NOT NULL DEFAULT '' COMMENT '处理失败原因',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_object_key` (`object_key`),
   KEY `idx_user_status` (`user_id`, `status`),
-  KEY `idx_user_resource_type` (`user_id`, `resource_type`)
+  KEY `idx_user_resource_type` (`user_id`, `resource_type`),
+  KEY `idx_bound_work` (`bound_work_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='媒体素材表';

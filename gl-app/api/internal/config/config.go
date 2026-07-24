@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -27,6 +28,23 @@ type Config struct {
 		SecretAccessKey string
 		UseSSL          bool
 		TempBucket      string
+		FormalBucket    string
 		PresignExpire   int64
+	}
+
+	MediaQueue struct {
+		kq.KqConf
+		MaxRetry int
+	}
+
+	MediaWorker struct {
+		FFmpegPath  string
+		FFprobePath string
+		TempDir     string
+		HlsTime     int
+	}
+
+	Audit struct {
+		AdminUserIds []int64
 	}
 }

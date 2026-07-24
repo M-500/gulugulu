@@ -41,19 +41,26 @@ type (
 	}
 
 	MediaAsset struct {
-		Id           int64        `db:"id"`            // 主键自增ID
-		CreatedAt    time.Time    `db:"created_at"`    // 创建时间
-		UpdatedAt    time.Time    `db:"updated_at"`    // 更新时间
-		DeletedAt    sql.NullTime `db:"deleted_at"`    // 软删除标记
-		UserId       int64        `db:"user_id"`       // 上传用户ID
-		ResourceType string       `db:"resource_type"` // 资源类型: image/video
-		Bucket       string       `db:"bucket"`        // 对象存储桶
-		ObjectKey    string       `db:"object_key"`    // 对象存储路径
-		OriginName   string       `db:"origin_name"`   // 原始文件名
-		ContentType  string       `db:"content_type"`  // 文件MIME类型
-		Ext          string       `db:"ext"`           // 文件扩展名
-		FileSize     int64        `db:"file_size"`     // 对象存储中的文件大小
-		Status       string       `db:"status"`        // 上传状态: uploading/uploaded/failed
+		Id              int64        `db:"id"`                // 主键自增ID
+		CreatedAt       time.Time    `db:"created_at"`        // 创建时间
+		UpdatedAt       time.Time    `db:"updated_at"`        // 更新时间
+		DeletedAt       sql.NullTime `db:"deleted_at"`        // 软删除标记
+		UserId          int64        `db:"user_id"`           // 上传用户ID
+		ResourceType    string       `db:"resource_type"`     // 资源类型: image/video
+		Bucket          string       `db:"bucket"`            // 对象存储桶
+		ObjectKey       string       `db:"object_key"`        // 对象存储路径
+		OriginName      string       `db:"origin_name"`       // 原始文件名
+		ContentType     string       `db:"content_type"`      // 文件MIME类型
+		Ext             string       `db:"ext"`               // 文件扩展名
+		FileSize        int64        `db:"file_size"`         // 对象存储中的文件大小
+		Status          string       `db:"status"`            // 上传状态: uploading/uploaded/bound/processing/ready/failed/expired
+		FormalBucket    string       `db:"formal_bucket"`     // 正式资源桶
+		FormalObjectKey string       `db:"formal_object_key"` // 正式资源路径或HLS主播放列表
+		DurationMs      int64        `db:"duration_ms"`       // 视频时长毫秒
+		Width           int64        `db:"width"`             // 宽度
+		Height          int64        `db:"height"`            // 高度
+		BoundWorkId     int64        `db:"bound_work_id"`     // 绑定作品ID
+		ProcessError    string       `db:"process_error"`     // 处理失败原因
 	}
 )
 
@@ -120,8 +127,8 @@ func (m *defaultMediaAssetModel) Insert(ctx context.Context, data *MediaAsset) (
 	mediaAssetIdKey := fmt.Sprintf("%s%v", cacheMediaAssetIdPrefix, data.Id)
 	mediaAssetObjectKeyKey := fmt.Sprintf("%s%v", cacheMediaAssetObjectKeyPrefix, data.ObjectKey)
 	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, mediaAssetRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.DeletedAt, data.UserId, data.ResourceType, data.Bucket, data.ObjectKey, data.OriginName, data.ContentType, data.Ext, data.FileSize, data.Status)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, mediaAssetRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.DeletedAt, data.UserId, data.ResourceType, data.Bucket, data.ObjectKey, data.OriginName, data.ContentType, data.Ext, data.FileSize, data.Status, data.FormalBucket, data.FormalObjectKey, data.DurationMs, data.Width, data.Height, data.BoundWorkId, data.ProcessError)
 	}, mediaAssetIdKey, mediaAssetObjectKeyKey)
 	return ret, err
 }
@@ -136,7 +143,7 @@ func (m *defaultMediaAssetModel) Update(ctx context.Context, newData *MediaAsset
 	mediaAssetObjectKeyKey := fmt.Sprintf("%s%v", cacheMediaAssetObjectKeyPrefix, data.ObjectKey)
 	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, mediaAssetRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.UserId, newData.ResourceType, newData.Bucket, newData.ObjectKey, newData.OriginName, newData.ContentType, newData.Ext, newData.FileSize, newData.Status, newData.Id)
+		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.UserId, newData.ResourceType, newData.Bucket, newData.ObjectKey, newData.OriginName, newData.ContentType, newData.Ext, newData.FileSize, newData.Status, newData.FormalBucket, newData.FormalObjectKey, newData.DurationMs, newData.Width, newData.Height, newData.BoundWorkId, newData.ProcessError, newData.Id)
 	}, mediaAssetIdKey, mediaAssetObjectKeyKey)
 	return err
 }

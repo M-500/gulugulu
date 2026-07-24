@@ -26,4 +26,31 @@ Minio:
   SecretAccessKey: OxE5vW53RxrvnxtMUVBTjO3XjSOfaQRWPZZjGXxk
   UseSSL: false
   TempBucket: gulugulu-temp
+  FormalBucket: gulugulu-media
   PresignExpire: 900
+
+# Kafka媒体处理队列。API通过kq.Pusher投递，mediaworker通过kq消费。
+MediaQueue:
+  Name: media-worker
+  Brokers:
+    - 127.0.0.1:19092
+  Group: gulugulu-media-workers
+  Topic: gulugulu-media-tasks
+  Offset: first
+  Conns: 1
+  Consumers: 1
+  Processors: 2
+  # false表示处理器返回错误时不提交offset，由Kafka重新投递。
+  ForceCommit: false
+  CommitInOrder: false
+  MaxRetry: 3
+
+MediaWorker:
+  FFmpegPath: ffmpeg
+  FFprobePath: ffprobe
+  TempDir: /tmp/gulugulu-media
+  HlsTime: 6
+
+# MVP阶段审核员用户ID；生产环境建议改为RBAC权限校验。
+Audit:
+  AdminUserIds: [1]

@@ -39,11 +39,4 @@ type (
         PreviewUrl string `json:"previewUrl"`
     }
 
-    CreateMediaReq {
-
-    }
-
-    CreateMediaReep {
-
-    }
 )

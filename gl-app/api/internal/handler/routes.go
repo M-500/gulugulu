@@ -26,6 +26,36 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/media/upload/presign",
 				Handler: media.CreateUploadPresignHandler(serverCtx),
 			},
+			{
+				// 创建作品并提交媒体处理
+				Method:  http.MethodPost,
+				Path:    "/works",
+				Handler: media.CreateWorkHandler(serverCtx),
+			},
+			{
+				// 查询作品详情
+				Method:  http.MethodGet,
+				Path:    "/works/:workId",
+				Handler: media.GetWorkHandler(serverCtx),
+			},
+			{
+				// 审核作品
+				Method:  http.MethodPost,
+				Path:    "/works/:workId/audit",
+				Handler: media.AuditWorkHandler(serverCtx),
+			},
+			{
+				// 重试失败的媒体处理任务
+				Method:  http.MethodPost,
+				Path:    "/works/:workId/retry",
+				Handler: media.RetryWorkHandler(serverCtx),
+			},
+			{
+				// 查询作品媒体处理、审核和发布状态
+				Method:  http.MethodGet,
+				Path:    "/works/:workId/status",
+				Handler: media.GetWorkStatusHandler(serverCtx),
+			},
 		},
 		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),
 		rest.WithPrefix("/api/v1"),

@@ -1,0 +1,80 @@
+syntax = "v1"
+
+info(
+    title: "作品发布接口"
+    desc: "作品创建、处理状态和审核接口"
+    author: "linlin"
+    email: "1978992154@qq.com"
+    version: "v1"
+)
+
+type (
+    CreateWorkReq {
+        Payload string `form:"payload"`
+    }
+
+    CreateWorkResp {
+        WorkId int64 `json:"workId"`
+        ProcessStatus string `json:"processStatus"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+    }
+
+    WorkIdReq {
+        WorkId int64 `path:"workId"`
+    }
+
+    WorkStatusResp {
+        WorkId int64 `json:"workId"`
+        ProcessStatus string `json:"processStatus"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+        Stage string `json:"stage"`
+        Progress int64 `json:"progress"`
+        Message string `json:"message"`
+        FailureReason string `json:"failureReason"`
+        ScheduledAt string `json:"scheduledAt,optional"`
+        PublishedAt string `json:"publishedAt,optional"`
+    }
+
+    WorkAssetItem {
+        MediaId int64 `json:"mediaId"`
+        Role string `json:"role"`
+        Sort int64 `json:"sort"`
+        Url string `json:"url"`
+    }
+
+    WorkTopicItem {
+        TopicId int64 `json:"topicId"`
+        Name string `json:"name"`
+    }
+
+    WorkDetailResp {
+        WorkId int64 `json:"workId"`
+        Type string `json:"type"`
+        Title string `json:"title"`
+        Content string `json:"content"`
+        Visibility string `json:"visibility"`
+        CollectionId int64 `json:"collectionId,optional"`
+        Original bool `json:"original"`
+        ProcessStatus string `json:"processStatus"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+        ScheduledAt string `json:"scheduledAt,optional"`
+        PublishedAt string `json:"publishedAt,optional"`
+        Assets []WorkAssetItem `json:"assets"`
+        Topics []WorkTopicItem `json:"topics"`
+    }
+
+    AuditWorkReq {
+        WorkId int64 `path:"workId"`
+        Decision string `json:"decision"`
+        Reason string `json:"reason,optional"`
+    }
+
+    AuditWorkResp {
+        WorkId int64 `json:"workId"`
+        ReviewStatus string `json:"reviewStatus"`
+        PublishStatus string `json:"publishStatus"`
+    }
+)

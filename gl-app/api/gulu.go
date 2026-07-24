@@ -26,6 +26,7 @@ func main() {
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
+	defer ctx.MediaQueue.Close()
 	handler.RegisterHandlers(server, ctx)
 	httpx.SetErrorHandler(xcode.ErrHandler)
 	httpx.SetOkHandler(xcode.OkHandler) // 拦截器

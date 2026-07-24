@@ -11,6 +11,7 @@ info (
 import (
 	"na/na.api"
 	"media/media.api"
+	"publish/publish.api"
 )
 
 // No Need Login
@@ -47,9 +48,24 @@ service gulu {
 	@handler completeUpload
 	post /media/upload/complete (CompleteUploadReq) returns (CompleteUploadResp)
 
+	@doc "创建作品并提交媒体处理"
+	@handler createWork
+	post /works (CreateWorkReq) returns (CreateWorkResp)
 
-	@doc "发布作品"
-	@handler createMedia
-	post /media/create (CreateMediaReq) returns (CreateMediaReep)
+	@doc "查询作品详情"
+	@handler getWork
+	get /works/:workId (WorkIdReq) returns (WorkDetailResp)
+
+	@doc "查询作品媒体处理、审核和发布状态"
+	@handler getWorkStatus
+	get /works/:workId/status (WorkIdReq) returns (WorkStatusResp)
+
+	@doc "重试失败的媒体处理任务"
+	@handler retryWork
+	post /works/:workId/retry (WorkIdReq) returns (WorkStatusResp)
+
+	@doc "审核作品"
+	@handler auditWork
+	post /works/:workId/audit (AuditWorkReq) returns (AuditWorkResp)
 }
 
