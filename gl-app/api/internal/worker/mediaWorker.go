@@ -293,6 +293,11 @@ func (w *MediaWorker) markFailed(workID int64, processErr error) {
 }
 
 func (w *MediaWorker) runDispatcher() {
+	type pendingWork struct {
+		WorkID int64  `db:"work_id"`
+		Type   string `db:"type"`
+	}
+
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -300,13 +305,24 @@ func (w *MediaWorker) runDispatcher() {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
-			var ids []int64
-			if err := w.svcCtx.SqlConn.QueryRowsCtx(w.ctx, &ids, `SELECT work_id FROM media_process_task
-				WHERE status='pending' AND updated_at < DATE_SUB(NOW(), INTERVAL 20 SECOND) LIMIT 100`); err != nil {
+			var works []pendingWork
+			if err := w.svcCtx.SqlConn.QueryRowsCtx(w.ctx, &works, `SELECT t.work_id,w.type
+				FROM media_process_task t
+				JOIN work w ON w.id=t.work_id
+				WHERE t.status='pending' AND t.updated_at < DATE_SUB(NOW(), INTERVAL 20 SECOND)
+				LIMIT 100`); err != nil {
 				continue
 			}
-			for _, id := range ids {
-				_ = w.svcCtx.MediaQueue.PublishProcessWork(w.ctx, id, 0)
+			for _, item := range works {
+				if item.Type == "image" {
+					// 兼容升级前已经进入waiting_process的图片作品：
+					// 直接执行MinIO迁移，不再补发Kafka消息。
+					if err := w.processWork(item.WorkID); err != nil {
+						w.markFailed(item.WorkID, err)
+					}
+					continue
+				}
+				_ = w.svcCtx.MediaQueue.PublishProcessWork(w.ctx, item.WorkID, 0)
 			}
 		}
 	}

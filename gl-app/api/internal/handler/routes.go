@@ -21,6 +21,24 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: media.GetCreatorWorkListHandler(serverCtx),
 			},
 			{
+				// 删除当前用户作品
+				Method:  http.MethodDelete,
+				Path:    "/creator/works/:workId",
+				Handler: media.DeleteCreatorWorkHandler(serverCtx),
+			},
+			{
+				// 修改当前用户作品标题
+				Method:  http.MethodPut,
+				Path:    "/creator/works/:workId/title",
+				Handler: media.UpdateCreatorWorkTitleHandler(serverCtx),
+			},
+			{
+				// 修改当前用户作品可见性
+				Method:  http.MethodPut,
+				Path:    "/creator/works/:workId/visibility",
+				Handler: media.UpdateCreatorWorkVisibilityHandler(serverCtx),
+			},
+			{
 				// 检查文件是否上传完成
 				Method:  http.MethodPost,
 				Path:    "/media/upload/complete",

@@ -87,6 +87,18 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	}
 
 	if existed, findErr := l.svcCtx.WorkRepo.FindOneByUserIdIdempotencyKey(l.ctx, userID, payload.IdempotencyKey); findErr == nil {
+		if existed.Type == "image" && existed.ProcessStatus != "succeeded" {
+			if promoteErr := promoteImageWork(l.ctx, l.svcCtx, existed.Id); promoteErr != nil {
+				markImagePromotionFailed(l.ctx, l.svcCtx, existed.Id, promoteErr)
+				return nil, promoteErr
+			}
+			return &types.CreateWorkResp{
+				WorkId:        existed.Id,
+				ProcessStatus: "succeeded",
+				ReviewStatus:  "pending_review",
+				PublishStatus: "pending",
+			}, nil
+		}
 		// 数据库事务已成功但Kafka曾短暂不可用时，前端可使用同一个
 		// Idempotency-Key安全重试。只有消息成功写入Kafka才返回成功。
 		if existed.ProcessStatus == "pending" {
@@ -223,6 +235,20 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	}
 	cleanupCover = false
 
+	if payload.Type == "image" {
+		if promoteErr := promoteImageWork(l.ctx, l.svcCtx, workID); promoteErr != nil {
+			markImagePromotionFailed(l.ctx, l.svcCtx, workID, promoteErr)
+			return nil, promoteErr
+		}
+		return &types.CreateWorkResp{
+			WorkId:        workID,
+			ProcessStatus: "succeeded",
+			ReviewStatus:  "pending_review",
+			PublishStatus: "pending",
+		}, nil
+	}
+
+	// 只有视频需要进入Kafka，由独立Worker下载、探测并转码为HLS。
 	if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, workID, 0); queueErr != nil {
 		return nil, queueErr
 	}

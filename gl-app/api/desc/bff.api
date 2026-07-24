@@ -56,6 +56,18 @@ service gulu {
 	@handler getCreatorWorkList
 	get /creator/works (CreatorWorkListReq) returns (CreatorWorkListResp)
 
+	@doc "修改当前用户作品标题"
+	@handler updateCreatorWorkTitle
+	put /creator/works/:workId/title (UpdateCreatorWorkTitleReq) returns (CreatorWorkMutationResp)
+
+	@doc "修改当前用户作品可见性"
+	@handler updateCreatorWorkVisibility
+	put /creator/works/:workId/visibility (UpdateCreatorWorkVisibilityReq) returns (CreatorWorkMutationResp)
+
+	@doc "删除当前用户作品"
+	@handler deleteCreatorWork
+	delete /creator/works/:workId (WorkIdReq) returns (CreatorWorkMutationResp)
+
 	@doc "查询作品详情"
 	@handler getWork
 	get /works/:workId (WorkIdReq) returns (WorkDetailResp)

@@ -64,6 +64,12 @@ type CreatorWorkListItem struct {
 	Type          string `json:"type"`
 	Title         string `json:"title"`
 	CoverUrl      string `json:"coverUrl"`
+	DurationMs    int64  `json:"durationMs"`
+	Visibility    string `json:"visibility"`
+	ViewCount     int64  `json:"viewCount"`
+	LikeCount     int64  `json:"likeCount"`
+	FavoriteCount int64  `json:"favoriteCount"`
+	ShareCount    int64  `json:"shareCount"`
 	ReviewStatus  string `json:"reviewStatus"`
 	PublishStatus string `json:"publishStatus"`
 	ReviewReason  string `json:"reviewReason,optional"`
@@ -73,15 +79,26 @@ type CreatorWorkListItem struct {
 }
 
 type CreatorWorkListReq struct {
-	Page     int64 `form:"page,optional"`
-	PageSize int64 `form:"pageSize,optional"`
+	Page     int64  `form:"page,optional"`
+	PageSize int64  `form:"pageSize,optional"`
+	Status   string `form:"status,optional"`
+	Keyword  string `form:"keyword,optional"`
 }
 
 type CreatorWorkListResp struct {
-	Total    int64                 `json:"total"`
-	Page     int64                 `json:"page"`
-	PageSize int64                 `json:"pageSize"`
-	List     []CreatorWorkListItem `json:"list"`
+	Total          int64                 `json:"total"`
+	Page           int64                 `json:"page"`
+	PageSize       int64                 `json:"pageSize"`
+	AllCount       int64                 `json:"allCount"`
+	PublishedCount int64                 `json:"publishedCount"`
+	ReviewingCount int64                 `json:"reviewingCount"`
+	RejectedCount  int64                 `json:"rejectedCount"`
+	List           []CreatorWorkListItem `json:"list"`
+}
+
+type CreatorWorkMutationResp struct {
+	WorkId  int64 `json:"workId"`
+	Updated bool  `json:"updated"`
 }
 
 type LoginReq struct {
@@ -108,6 +125,16 @@ type RegisterResp struct {
 	AccessToken  string `json:"accessToken"`
 	AccessExpire int64  `json:"accessExpire"`
 	RefreshAfter int64  `json:"refreshAfter"`
+}
+
+type UpdateCreatorWorkTitleReq struct {
+	WorkId int64  `path:"workId"`
+	Title  string `json:"title"`
+}
+
+type UpdateCreatorWorkVisibilityReq struct {
+	WorkId     int64  `path:"workId"`
+	Visibility string `json:"visibility"`
 }
 
 type WorkAssetItem struct {

@@ -65,17 +65,35 @@ pending -> processing -> succeeded
 
 媒体处理成功不会直接发布。只有审核接口返回通过后，作品才会立即发布或进入定时发布。
 
-创建作品接口只等待数据库事务和Kafka消息投递成功，不等待图片迁移、视频转码或审核。
-前端收到 `workId` 后即可结束发布流程。
+视频作品的创建接口只等待数据库事务和Kafka消息投递成功，不等待视频转码或审核。
+图片作品不进入Kafka，创建接口会通过MinIO服务端复制把正文图片和封面迁移到正式桶，
+完成后直接进入 `pending_review`。前端收到 `workId` 后即可结束发布流程。
 
 ## 作品管理列表
 
 ```http
-GET /api/v1/creator/works?page=1&pageSize=20
+GET /api/v1/creator/works?page=1&pageSize=20&status=all&keyword=标题
 ```
 
 该接口只返回当前用户 `process_status=succeeded` 的作品，不返回媒体处理中的作品。
 列表包含图片/视频类型、封面、审核状态、发布状态、审核失败原因和发布时间。
+
+`status` 支持：
+
+- `all`：全部处理完成作品
+- `published`：已经发布
+- `reviewing`：等待审核
+- `rejected`：审核未通过
+
+作品卡片管理操作：
+
+```http
+PUT    /api/v1/creator/works/:workId/title
+PUT    /api/v1/creator/works/:workId/visibility
+DELETE /api/v1/creator/works/:workId
+```
+
+列表会额外返回视频时长、作品可见性，以及浏览、点赞、收藏和转发次数。
 
 ## 启动
 
