@@ -111,11 +111,19 @@ cd deploy
 docker compose up -d redis kafka minio minio-init
 ```
 
-API 和 Worker 必须分别启动：
+本地开发建议使用统一命令同时启动 API 和 Worker，避免媒体任务入队后没有消费者：
+
+```bash
+make dev
+```
+
+也可以分别启动：
 
 ```bash
 go run ./api -f api/etc/gulu.yaml
 go run ./api/cmd/mediaworker -f api/etc/gulu.yaml
 ```
 
-Worker 所在环境必须安装 `ffmpeg` 和 `ffprobe`。
+视频转码由 Worker 从 Kafka 消费并异步执行。仅启动 API 时，视频会一直停留在
+`pending / waiting_process`，不会进入待审核列表。Worker 所在环境必须安装
+`ffmpeg` 和 `ffprobe`。
