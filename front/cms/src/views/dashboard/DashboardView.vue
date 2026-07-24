@@ -24,6 +24,7 @@
       <main class="dashboard-shell__content">
         <DashboardOverview v-if="activeMenu === 'home'" />
         <PublishView v-else-if="activeMenu === 'publish'" />
+        <WorksManagementView v-else-if="activeMenu === 'works'" />
         <DashboardPlaceholder v-else :menu="currentMenu" />
       </main>
     </div>
@@ -41,6 +42,7 @@ import DashboardOverview from './components/DashboardOverview.vue'
 import DashboardPlaceholder from './components/DashboardPlaceholder.vue'
 import DashboardSidebar from './components/DashboardSidebar.vue'
 import PublishView from '../publish/PublishView.vue'
+import WorksManagementView from '../works/WorksManagementView.vue'
 import { dashboardMenus } from './dashboardMenus'
 
 const router = useRouter()

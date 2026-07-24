@@ -21,7 +21,7 @@ export const dashboardMenus = [
     key: 'works',
     label: '作品管理',
     icon: '▤',
-    description: '管理已经发布的全部作品'
+    description: '查看审核中、未通过和已发布作品'
   },
   {
     key: 'review',
