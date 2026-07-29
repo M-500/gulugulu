@@ -4,16 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"path"
-	"strings"
 	"time"
 
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -106,7 +102,7 @@ func (l *GetAuditWorkDetailLogic) GetAuditWorkDetail(req *types.WorkIdReq) (resp
 		})
 		if asset.Role == "video" {
 			resp.DurationMs = asset.Duration
-			resp.VideoPlaylist = l.buildSignedPlaylist(asset.Bucket, asset.ObjectKey)
+			resp.VideoPlaylist = fmt.Sprintf("/api/v1/audit/works/%d/playlist", row.ID)
 		}
 	}
 
@@ -124,34 +120,6 @@ func (l *GetAuditWorkDetailLogic) GetAuditWorkDetail(req *types.WorkIdReq) (resp
 	}
 
 	return resp, nil
-}
-
-// 将HLS分片改写为短期签名地址，审核页面无需公开正式桶即可播放视频。
-func (l *GetAuditWorkDetailLogic) buildSignedPlaylist(bucket, objectKey string) string {
-	if bucket == "" || objectKey == "" {
-		return ""
-	}
-	object, err := l.svcCtx.MinioClient.GetObject(l.ctx, bucket, objectKey, minio.GetObjectOptions{})
-	if err != nil {
-		l.Errorf("读取审核视频清单失败: %v", err)
-		return ""
-	}
-	defer object.Close()
-	content, err := io.ReadAll(io.LimitReader(object, 2<<20))
-	if err != nil {
-		l.Errorf("读取审核视频清单失败: %v", err)
-		return ""
-	}
-	lines := strings.Split(string(content), "\n")
-	basePath := path.Dir(objectKey)
-	for index, line := range lines {
-		segment := strings.TrimSpace(line)
-		if segment == "" || strings.HasPrefix(segment, "#") {
-			continue
-		}
-		lines[index] = l.presignAuditAsset(bucket, path.Join(basePath, segment))
-	}
-	return strings.Join(lines, "\n")
 }
 
 func (l *GetAuditWorkDetailLogic) presignAuditAsset(bucket, objectKey string) string {

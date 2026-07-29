@@ -72,6 +72,10 @@ service gulu {
 	@handler getWork
 	get /works/:workId (WorkIdReq) returns (WorkDetailResp)
 
+	@doc "动态生成作品HLS播放清单"
+	@handler getWorkPlaylist
+	get /works/:workId/playlist (WorkIdReq)
+
 	@doc "查询作品媒体处理、审核和发布状态"
 	@handler getWorkStatus
 	get /works/:workId/status (WorkIdReq) returns (WorkStatusResp)
@@ -91,5 +95,9 @@ service gulu {
 	@doc "查询审核作品详情"
 	@handler getAuditWorkDetail
 	get /audit/works/:workId (WorkIdReq) returns (AuditWorkDetailResp)
+
+	@doc "动态生成审核作品HLS播放清单"
+	@handler getAuditWorkPlaylist
+	get /audit/works/:workId/playlist (WorkIdReq)
 }
 

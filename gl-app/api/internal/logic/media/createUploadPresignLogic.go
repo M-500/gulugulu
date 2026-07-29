@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mime"
-	"net"
-	"net/http"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,12 +18,6 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
-
-type requestContextKey struct{}
-
-func ContextWithRequest(ctx context.Context, request *http.Request) context.Context {
-	return context.WithValue(ctx, requestContextKey{}, request)
-}
 
 type CreateUploadPresignLogic struct {
 	logx.Logger
@@ -135,43 +126,10 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 }
 
 func (l *CreateUploadPresignLogic) presignClient() (*minio.Client, error) {
-	endpoint := l.publicEndpoint()
-
-	return minio.New(endpoint, &minio.Options{
+	return minio.New(l.svcCtx.Config.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(l.svcCtx.Config.Minio.AccessKeyID, l.svcCtx.Config.Minio.SecretAccessKey, ""),
 		Secure: l.svcCtx.Config.Minio.UseSSL,
 	})
-}
-
-func (l *CreateUploadPresignLogic) publicEndpoint() string {
-	endpoint := l.svcCtx.Config.Minio.Endpoint
-
-	request := requestFromContext(l.ctx)
-	if request == nil {
-		return endpoint
-	}
-
-	originValue := request.Header.Get("Origin")
-	if originValue == "" {
-		originValue = request.Header.Get("Referer")
-	}
-
-	originUrl, err := url.Parse(originValue)
-	if err != nil || originUrl.Hostname() == "" {
-		return endpoint
-	}
-
-	_, endpointPort, err := net.SplitHostPort(endpoint)
-	if err != nil || endpointPort == "" {
-		return endpoint
-	}
-
-	return net.JoinHostPort(originUrl.Hostname(), endpointPort)
-}
-
-func requestFromContext(ctx context.Context) *http.Request {
-	request, _ := ctx.Value(requestContextKey{}).(*http.Request)
-	return request
 }
 
 func (l *CreateUploadPresignLogic) ensureBucket(bucket string) error {

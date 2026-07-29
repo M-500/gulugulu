@@ -4,16 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"path"
-	"strings"
 	"time"
 
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
 
-	"github.com/minio/minio-go/v7"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -91,7 +87,7 @@ func (l *GetWorkLogic) GetWork(req *types.WorkIdReq) (resp *types.WorkDetailResp
 			resp.CoverUrl = url
 		case "video":
 			resp.DurationMs = asset.Duration
-			resp.VideoPlaylist = l.buildWorkVideoPlaylist(asset.Bucket, asset.ObjectKey)
+			resp.VideoPlaylist = fmt.Sprintf("/api/v1/works/%d/playlist", row.ID)
 		}
 		resp.Assets = append(resp.Assets, types.WorkAssetItem{MediaId: asset.MediaID, Role: asset.Role, Sort: asset.Sort, Url: url})
 	}
@@ -108,34 +104,6 @@ func (l *GetWorkLogic) GetWork(req *types.WorkIdReq) (resp *types.WorkDetailResp
 	}
 
 	return resp, nil
-}
-
-// 将HLS清单中的相对分片地址改写为短期签名地址，正式桶无需开放公共读权限。
-func (l *GetWorkLogic) buildWorkVideoPlaylist(bucket, objectKey string) string {
-	if bucket == "" || objectKey == "" {
-		return ""
-	}
-	object, err := l.svcCtx.MinioClient.GetObject(l.ctx, bucket, objectKey, minio.GetObjectOptions{})
-	if err != nil {
-		l.Errorf("读取作品视频清单失败: %v", err)
-		return ""
-	}
-	defer object.Close()
-	content, err := io.ReadAll(io.LimitReader(object, 2<<20))
-	if err != nil {
-		l.Errorf("读取作品视频清单失败: %v", err)
-		return ""
-	}
-	lines := strings.Split(string(content), "\n")
-	basePath := path.Dir(objectKey)
-	for index, line := range lines {
-		segment := strings.TrimSpace(line)
-		if segment == "" || strings.HasPrefix(segment, "#") {
-			continue
-		}
-		lines[index] = l.presignWorkAsset(bucket, path.Join(basePath, segment))
-	}
-	return strings.Join(lines, "\n")
 }
 
 func (l *GetWorkLogic) presignWorkAsset(bucket, objectKey string) string {

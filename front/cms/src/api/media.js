@@ -24,7 +24,7 @@ export async function uploadToObjectStorage(file, presign) {
   const contentType = presign.headers?.['Content-Type'] || file.type || 'application/octet-stream'
   const response = await axios({
     method: presign.method || 'PUT',
-    url: normalizeObjectStorageUrl(presign.uploadUrl),
+    url: presign.uploadUrl,
     headers: {
       'Content-Type': contentType
     },
@@ -34,17 +34,4 @@ export async function uploadToObjectStorage(file, presign) {
   })
 
   return response.data
-}
-
-function normalizeObjectStorageUrl(uploadUrl) {
-  const url = new URL(uploadUrl)
-  const pageHost = window.location.hostname
-  const shouldUsePageHost = !['localhost', '127.0.0.1'].includes(pageHost)
-    && ['localhost', '127.0.0.1'].includes(url.hostname)
-
-  if (shouldUsePageHost) {
-    url.hostname = pageHost
-  }
-
-  return url.toString()
 }

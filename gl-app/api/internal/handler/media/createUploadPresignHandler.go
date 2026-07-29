@@ -18,8 +18,7 @@ func CreateUploadPresignHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		ctx := media.ContextWithRequest(r.Context(), r)
-		l := media.NewCreateUploadPresignLogic(ctx, svcCtx)
+		l := media.NewCreateUploadPresignLogic(r.Context(), svcCtx)
 		resp, err := l.CreateUploadPresign(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

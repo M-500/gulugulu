@@ -49,6 +49,12 @@
       </div>
     </div>
 
+    <Transition name="publish-message">
+      <div v-if="message.visible" :class="['publish-message', `publish-message--${message.type}`]" role="status" aria-live="polite">
+        <span class="publish-message__mark" aria-hidden="true"></span>
+        <span>{{ message.text }}</span>
+      </div>
+    </Transition>
     <div v-if="uploading" class="upload-progress"><strong>正在上传素材</strong><span>{{ uploadMessage }}</span></div>
     <PublishDraftDrawer
       v-if="draftDrawerOpen"
@@ -93,6 +99,12 @@ const uploading = ref(false)
 const publishing = ref(false)
 const uploadMessage = ref('')
 const bodyTopics = ref([])
+const message = reactive({
+  visible: false,
+  type: 'info',
+  text: ''
+})
+let messageTimer = null
 
 const form = reactive({
   title: '',
@@ -139,6 +151,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   draftStore.releaseCurrentUrls()
+  window.clearTimeout(messageTimer)
 })
 
 async function handleFileInput(event) {
@@ -177,6 +190,8 @@ async function appendImageFiles(event) {
   try {
     const uploadedAssets = await uploadFiles(files)
     await draftStore.appendImages(files, uploadedAssets)
+  } catch (error) {
+    showMessage(error.message || '上传失败，请稍后重试', 'error')
   } finally {
     uploading.value = false
     uploadMessage.value = ''
@@ -194,7 +209,7 @@ async function createDraftFromFiles(fileList, draftType = activeType.value) {
     .slice(0, isImageWork ? 19 : 1)
 
   if (!files.length) {
-    alert(isImageWork ? '图片作品只能上传图片。' : '视频作品只能上传一个视频。')
+    showMessage(isImageWork ? '图片作品只能上传图片。' : '视频作品只能上传一个视频。', 'warning')
     return
   }
 
@@ -204,6 +219,8 @@ async function createDraftFromFiles(fileList, draftType = activeType.value) {
   try {
     const uploadedAssets = await uploadFiles(files)
     await draftStore.createDraft(draftType, files, uploadedAssets)
+  } catch (error) {
+    showMessage(error.message || '上传失败，请稍后重试', 'error')
   } finally {
     uploading.value = false
     uploadMessage.value = ''
@@ -321,9 +338,9 @@ async function publishDraft() {
 
     const draftId = currentDraft.value.id
     await draftStore.deleteDraft(draftId)
-    alert(`作品 #${created.workId} 已提交，后台将自动处理素材并进入审核。`)
+    showMessage(`作品 #${created.workId} 已提交，后台将自动处理素材并进入审核。`, 'success')
   } catch (error) {
-    alert(error.message || '发布失败，请稍后重试')
+    showMessage(error.message || '发布失败，请稍后重试', 'error')
   } finally {
     publishing.value = false
     uploading.value = false
@@ -338,11 +355,11 @@ async function handleCoverInput(event) {
     return
   }
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
-    alert('封面只支持 JPG、JPEG 或 PNG 格式。')
+    showMessage('封面只支持 JPG、JPEG 或 PNG 格式。', 'warning')
     return
   }
   if (file.size > 100 * 1024 * 1024) {
-    alert('封面大小不能超过 100MB。')
+    showMessage('封面大小不能超过 100MB。', 'warning')
     return
   }
   await updateDraft({
@@ -350,6 +367,16 @@ async function handleCoverInput(event) {
     coverName: file.name,
     coverType: file.type
   })
+}
+
+function showMessage(text, type = 'info') {
+  message.text = text
+  message.type = type
+  message.visible = true
+  window.clearTimeout(messageTimer)
+  messageTimer = window.setTimeout(() => {
+    message.visible = false
+  }, type === 'success' ? 3200 : 2600)
 }
 
 function validatePublishForm() {

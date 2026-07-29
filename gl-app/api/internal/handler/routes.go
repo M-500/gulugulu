@@ -27,6 +27,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: media.GetAuditWorkDetailHandler(serverCtx),
 			},
 			{
+				// 动态生成审核作品HLS播放清单
+				Method:  http.MethodGet,
+				Path:    "/audit/works/:workId/playlist",
+				Handler: media.GetAuditWorkPlaylistHandler(serverCtx),
+			},
+			{
 				// 查询当前用户所有处理完成的作品
 				Method:  http.MethodGet,
 				Path:    "/creator/works",
@@ -79,6 +85,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPost,
 				Path:    "/works/:workId/audit",
 				Handler: media.AuditWorkHandler(serverCtx),
+			},
+			{
+				// 动态生成作品HLS播放清单
+				Method:  http.MethodGet,
+				Path:    "/works/:workId/playlist",
+				Handler: media.GetWorkPlaylistHandler(serverCtx),
 			},
 			{
 				// 重试失败的媒体处理任务
