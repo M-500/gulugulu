@@ -10,8 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"gl-app/api/internal/models/media"
+	mediaModel "gl-app/api/internal/models/media"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
@@ -23,35 +22,38 @@ type CreateUploadPresignLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
+	// MinIO客户端由ServiceContext统一创建并注入，避免在业务逻辑中重复初始化连接配置。
+	minioClient *minio.Client
 }
 
 // create upload presigned url
 func NewCreateUploadPresignLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateUploadPresignLogic {
 	return &CreateUploadPresignLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
-		svcCtx: svcCtx,
+		Logger:      logx.WithContext(ctx),
+		ctx:         ctx,
+		svcCtx:      svcCtx,
+		minioClient: svcCtx.MinioClient,
 	}
 }
 
 func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPresignReq) (resp *types.CreateUploadPresignResp, err error) {
 	userId := ctxdata.GetUidFromCtx(l.ctx)
 	if userId <= 0 {
-		return nil, fmt.Errorf("用户未登录")
+		return nil, l.logAndReturn("创建上传预签名失败", fmt.Errorf("用户未登录"))
 	}
 
 	resourceType, err := normalizeResourceType(req.ResourceType)
 	if err != nil {
-		return nil, err
+		return nil, l.logAndReturn("创建上传预签名失败", err)
 	}
 
 	originName, ext, err := normalizeFileName(req.FileName)
 	if err != nil {
-		return nil, err
+		return nil, l.logAndReturn("创建上传预签名失败", err)
 	}
 
 	if !isAllowedExt(resourceType, ext) {
-		return nil, fmt.Errorf("不支持的%s格式: %s", resourceType, ext)
+		return nil, l.logAndReturn("创建上传预签名失败", fmt.Errorf("不支持的%s格式: %s", resourceType, ext))
 	}
 
 	contentType := strings.TrimSpace(req.ContentType)
@@ -69,30 +71,28 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 
 	bucket := l.svcCtx.Config.Minio.TempBucket
 	if bucket == "" {
-		return nil, fmt.Errorf("未配置MinIO临时上传桶")
+		return nil, l.logAndReturn("创建上传预签名失败", fmt.Errorf("未配置MinIO临时上传桶"))
 	}
 
+	// 临时桶用于接收前端直传的原始素材，后续发布成功后再迁移到正式桶。
 	if err := l.ensureBucket(bucket); err != nil {
-		return nil, err
+		return nil, l.logAndReturn("创建上传预签名失败", err)
 	}
 
 	resourceName := fmt.Sprintf("%s-%s", uuid.NewString(), sanitizeResourceName(originName))
+	// 对象路径按用户和日期分区，便于后续排查、生命周期清理和迁移处理。
 	objectKey := fmt.Sprintf("%d/%s/%s", userId, time.Now().Format("20060102"), resourceName)
-	presignClient, err := l.presignClient()
+
+	uploadUrl, err := l.minioClient.PresignedPutObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second)
 	if err != nil {
-		return nil, err
+		return nil, l.logAndReturn("生成预签上传地址失败", fmt.Errorf("调用MinIO生成PUT预签名失败: %w", err))
+	}
+	previewUrl, err := l.minioClient.PresignedGetObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second, nil)
+	if err != nil {
+		return nil, l.logAndReturn("生成预览地址失败", fmt.Errorf("调用MinIO生成GET预签名失败: %w", err))
 	}
 
-	uploadUrl, err := presignClient.PresignedPutObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second)
-	if err != nil {
-		return nil, fmt.Errorf("生成预签上传地址失败: %w", err)
-	}
-	previewUrl, err := presignClient.PresignedGetObject(l.ctx, bucket, objectKey, time.Duration(expiresIn)*time.Second, nil)
-	if err != nil {
-		return nil, fmt.Errorf("生成预览地址失败: %w", err)
-	}
-
-	result, err := l.svcCtx.MediaAssetRepo.Insert(l.ctx, &media.MediaAsset{
+	result, err := l.svcCtx.MediaAssetRepo.Insert(l.ctx, &mediaModel.MediaAsset{
 		UserId:       userId,
 		ResourceType: resourceType,
 		Bucket:       bucket,
@@ -103,12 +103,12 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 		Status:       "uploading",
 	})
 	if err != nil {
-		return nil, fmt.Errorf("创建媒体素材记录失败: %w", err)
+		return nil, l.logAndReturn("创建媒体素材记录失败", fmt.Errorf("写入媒体素材记录失败: %w", err))
 	}
 
 	mediaId, err := result.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("获取媒体素材ID失败: %w", err)
+		return nil, l.logAndReturn("获取媒体素材ID失败", fmt.Errorf("读取媒体素材自增ID失败: %w", err))
 	}
 
 	return &types.CreateUploadPresignResp{
@@ -125,15 +125,13 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 	}, nil
 }
 
-func (l *CreateUploadPresignLogic) presignClient() (*minio.Client, error) {
-	return minio.New(l.svcCtx.Config.Minio.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(l.svcCtx.Config.Minio.AccessKeyID, l.svcCtx.Config.Minio.SecretAccessKey, ""),
-		Secure: l.svcCtx.Config.Minio.UseSSL,
-	})
-}
-
 func (l *CreateUploadPresignLogic) ensureBucket(bucket string) error {
-	exists, err := l.svcCtx.MinioClient.BucketExists(l.ctx, bucket)
+	if l.minioClient == nil {
+		return fmt.Errorf("MinIO客户端未初始化")
+	}
+
+	// 本地开发或新环境首次启动时桶可能不存在，这里做一次幂等兜底。
+	exists, err := l.minioClient.BucketExists(l.ctx, bucket)
 	if err != nil {
 		return fmt.Errorf("检查MinIO临时桶失败: %w", err)
 	}
@@ -142,11 +140,16 @@ func (l *CreateUploadPresignLogic) ensureBucket(bucket string) error {
 		return nil
 	}
 
-	if err := l.svcCtx.MinioClient.MakeBucket(l.ctx, bucket, minio.MakeBucketOptions{}); err != nil {
+	if err := l.minioClient.MakeBucket(l.ctx, bucket, minio.MakeBucketOptions{}); err != nil {
 		return fmt.Errorf("创建MinIO临时桶失败: %w", err)
 	}
 
 	return nil
+}
+
+func (l *CreateUploadPresignLogic) logAndReturn(message string, err error) error {
+	l.Errorf("%s：%v", message, err)
+	return err
 }
 
 func normalizeResourceType(resourceType string) (string, error) {
