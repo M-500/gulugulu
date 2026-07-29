@@ -160,12 +160,17 @@ type (
         Type string `json:"type"`
         Title string `json:"title"`
         Content string `json:"content"`
+        CoverUrl string `json:"coverUrl"`
+        DurationMs int64 `json:"durationMs"`
+        VideoPlaylist string `json:"videoPlaylist,optional"`
         Visibility string `json:"visibility"`
         CollectionId int64 `json:"collectionId,optional"`
         Original bool `json:"original"`
         ProcessStatus string `json:"processStatus"`
         ReviewStatus string `json:"reviewStatus"`
         PublishStatus string `json:"publishStatus"`
+        ReviewReason string `json:"reviewReason,optional"`
+        CreatedAt string `json:"createdAt"`
         ScheduledAt string `json:"scheduledAt,optional"`
         PublishedAt string `json:"publishedAt,optional"`
         Assets []WorkAssetItem `json:"assets"`

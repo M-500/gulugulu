@@ -17,7 +17,7 @@
 
       <template v-else-if="detail">
         <div class="review-preview">
-          <ReviewVideoPlayer
+          <HlsVideoPlayer
             v-if="videoAsset"
             :playlist="detail.videoPlaylist"
             :poster="detail.coverUrl"
@@ -73,7 +73,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import ReviewVideoPlayer from './ReviewVideoPlayer.vue'
+import HlsVideoPlayer from '@/components/HlsVideoPlayer.vue'
 
 const props = defineProps({
   detail: { type: Object, default: null },

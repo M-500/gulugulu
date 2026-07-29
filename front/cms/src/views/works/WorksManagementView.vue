@@ -26,6 +26,7 @@
       :works="works"
       @delete="handleDelete"
       @edit="handleEdit"
+      @open="handleOpen"
       @visibility="handleVisibility"
     />
 
@@ -42,6 +43,15 @@
       :total="total"
       @change="handlePageChange"
     />
+
+    <WorkDetailDialog
+      v-if="selectedWork"
+      :detail="workDetail"
+      :error-message="detailError"
+      :loading="detailLoading"
+      @close="closeDetail"
+      @retry="loadWorkDetail"
+    />
   </section>
 </template>
 
@@ -51,11 +61,13 @@ import { computed, onMounted, ref } from 'vue'
 import {
   deleteCreatorWork,
   getCreatorWorks,
+  getWork,
   updateCreatorWorkTitle,
   updateCreatorWorkVisibility
 } from '@/api/works'
 
 import WorksGrid from './components/WorksGrid.vue'
+import WorkDetailDialog from './components/WorkDetailDialog.vue'
 import WorksPagination from './components/WorksPagination.vue'
 import WorksToolbar from './components/WorksToolbar.vue'
 
@@ -68,6 +80,10 @@ const total = ref(0)
 const works = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const selectedWork = ref(null)
+const workDetail = ref(null)
+const detailLoading = ref(false)
+const detailError = ref('')
 const counts = ref({
   all: 0,
   published: 0,
@@ -131,6 +147,31 @@ function handlePageChange(nextPage) {
   page.value = nextPage
   loadWorks()
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function handleOpen(work) {
+  selectedWork.value = work
+  workDetail.value = null
+  loadWorkDetail()
+}
+
+async function loadWorkDetail() {
+  if (!selectedWork.value) return
+  detailLoading.value = true
+  detailError.value = ''
+  try {
+    workDetail.value = await getWork(selectedWork.value.workId)
+  } catch (error) {
+    detailError.value = error.message || '作品详情加载失败'
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+function closeDetail() {
+  selectedWork.value = null
+  workDetail.value = null
+  detailError.value = ''
 }
 
 async function handleEdit(work) {

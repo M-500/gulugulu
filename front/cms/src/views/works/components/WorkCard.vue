@@ -1,5 +1,5 @@
 <template>
-  <article class="work-card">
+  <article class="work-card" tabindex="0" @click="$emit('open', work)" @keydown.enter="$emit('open', work)">
     <div class="work-card__cover">
       <img v-if="work.coverUrl" :src="work.coverUrl" :alt="work.title" loading="lazy">
       <div v-else class="work-card__placeholder"><span>咕</span></div>
@@ -13,7 +13,7 @@
         <span v-if="statusMeta.badge" :class="['work-status', `is-${statusMeta.tone}`]">{{ statusMeta.badge }}</span>
         <h2>{{ work.title || '无笔记标题' }}</h2>
       </div>
-      <details class="work-card__actions">
+      <details class="work-card__actions" @click.stop>
         <summary title="作品操作" aria-label="作品操作">✎</summary>
         <div class="work-card__menu">
           <button type="button" @click="$emit('edit', work)">编辑标题</button>
@@ -41,7 +41,7 @@ const props = defineProps({
   work: { type: Object, required: true }
 })
 
-defineEmits(['delete', 'edit', 'visibility'])
+defineEmits(['delete', 'edit', 'open', 'visibility'])
 
 const statusMeta = computed(() => {
   if (props.work.reviewStatus === 'rejected') {

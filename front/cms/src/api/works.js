@@ -17,8 +17,17 @@ export function getWorkStatus(workId) {
   return http.get(`/api/v1/works/${workId}/status`)
 }
 
-export function getWork(workId) {
-  return http.get(`/api/v1/works/${workId}`)
+export async function getWork(workId) {
+  const result = await http.get(`/api/v1/works/${workId}`)
+  return {
+    ...result,
+    coverUrl: normalizeObjectStorageUrl(result.coverUrl),
+    videoPlaylist: normalizePlaylistUrls(result.videoPlaylist),
+    assets: (result.assets || []).map((asset) => ({
+      ...asset,
+      url: normalizeObjectStorageUrl(asset.url)
+    }))
+  }
 }
 
 export async function getCreatorWorks(params) {
@@ -43,6 +52,16 @@ export function updateCreatorWorkVisibility(workId, visibility) {
 
 export function deleteCreatorWork(workId) {
   return http.delete(`/api/v1/creator/works/${workId}`)
+}
+
+function normalizePlaylistUrls(value) {
+  if (!value) {
+    return ''
+  }
+  return value.split('\n').map((line) => {
+    const trimmed = line.trim()
+    return trimmed && !trimmed.startsWith('#') ? normalizeObjectStorageUrl(trimmed) : line
+  }).join('\n')
 }
 
 function normalizeObjectStorageUrl(value) {

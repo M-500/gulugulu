@@ -4,6 +4,7 @@
       v-for="work in works"
       :key="work.workId"
       :work="work"
+      @open="$emit('open', $event)"
       @delete="$emit('delete', $event)"
       @edit="$emit('edit', $event)"
       @visibility="$emit('visibility', $event)"
@@ -18,5 +19,5 @@ defineProps({
   works: { type: Array, default: () => [] }
 })
 
-defineEmits(['delete', 'edit', 'visibility'])
+defineEmits(['delete', 'edit', 'open', 'visibility'])
 </script>
