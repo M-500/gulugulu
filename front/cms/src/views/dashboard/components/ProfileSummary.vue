@@ -2,15 +2,20 @@
   <section class="profile-summary">
     <div class="profile-summary__identity">
       <div class="profile-summary__avatar">
-        咕
+        <img
+          v-if="profile.avatarUrl"
+          :src="profile.avatarUrl"
+          :alt="`${displayName}的头像`"
+        >
+        <b v-else>{{ avatarText }}</b>
         <span />
       </div>
       <div>
         <div class="profile-summary__name">
-          <h2>咕噜创作者</h2>
+          <h2>{{ displayName }}</h2>
           <span>已认证</span>
         </div>
-        <p>@gulugulu · ID 100086</p>
+        <p>{{ profile.email || '尚未绑定邮箱' }} · ID {{ displayUserId }}</p>
         <small>分享生活灵感与实用创作技巧，让每一篇内容都有价值。</small>
       </div>
     </div>
@@ -28,6 +33,23 @@
     </div>
   </section>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  profile: {
+    type: Object,
+    default: () => ({})
+  }
+})
+
+const displayName = computed(() => props.profile.nickName || '咕噜创作者')
+const displayUserId = computed(() => props.profile.userId || '--')
+const avatarText = computed(() => (
+  props.profile.nickName || props.profile.email || '咕'
+).slice(0, 1))
+</script>
 
 <style scoped>
 .profile-summary {
@@ -66,9 +88,29 @@
   color: #fff;
   font-size: 25px;
   font-weight: 800;
+  overflow: visible;
+}
+
+.profile-summary__avatar img,
+.profile-summary__avatar b {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+}
+
+.profile-summary__avatar img {
+  display: block;
+  object-fit: cover;
+}
+
+.profile-summary__avatar b {
+  display: grid;
+  place-items: center;
+  font-size: inherit;
 }
 
 .profile-summary__avatar span {
+  z-index: 1;
   position: absolute;
   right: -1px;
   bottom: -1px;

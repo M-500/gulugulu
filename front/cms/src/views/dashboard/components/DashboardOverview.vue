@@ -3,7 +3,7 @@
     <div class="dashboard-overview__heading">
       <div>
         <p>工作台</p>
-        <h1>下午好，咕噜创作者</h1>
+        <h1>下午好，{{ displayName }}</h1>
         <span>这里是你的内容数据概览，继续保持稳定更新吧。</span>
       </div>
       <button type="button" @click="lastUpdated = '刚刚'">
@@ -11,7 +11,7 @@
       </button>
     </div>
 
-    <ProfileSummary />
+    <ProfileSummary :profile="authStore.profile" />
 
     <section class="metric-grid" aria-label="核心数据">
       <MetricCard
@@ -31,14 +31,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useAuthStore } from '@/stores/auth'
 import ContentPerformance from './ContentPerformance.vue'
 import MetricCard from './MetricCard.vue'
 import NoteTrendChart from './NoteTrendChart.vue'
 import ProfileSummary from './ProfileSummary.vue'
 
+const authStore = useAuthStore()
 const lastUpdated = ref('今天 14:30')
+const displayName = computed(() => authStore.profile.nickName || '咕噜创作者')
 
 const metrics = [
   {
