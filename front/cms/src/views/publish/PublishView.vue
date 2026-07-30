@@ -27,8 +27,8 @@
           :assets="coverAssets"
           :cover-asset-id="currentDraft.coverAssetId"
           :custom-cover-url="currentDraft.coverLocalUrl"
-          @select="updateDraft({ coverAssetId: $event })"
-          @upload-cover="handleCoverInput"
+          @select="selectImageCover"
+          @capture-frame="captureVideoCover"
         />
         <PublishComposeCard
           :form="form"
@@ -42,7 +42,7 @@
         <PublishSettings :form="form" @update-form="Object.assign(form, $event)" @persist="persistForm" @open-collection="collectionOpen = true" />
       </div>
 
-      <PublishPreview :asset="previewAsset" :assets="coverAssets" :cover-url="currentDraft.coverLocalUrl" :form="form" />
+      <PublishPreview :asset="previewAsset" :assets="coverAssets" :cover-url="selectedCoverUrl" :form="form" />
       <div class="publish-bar">
         <button class="ghost-button" type="button" @click="saveAndLeave">暂存离开</button>
         <button class="primary-button" type="button" :disabled="publishing" @click="publishDraft">{{ publishing ? '提交中…' : '发布' }}</button>
@@ -122,6 +122,16 @@ const activeOption = computed(() => publishTypes.find((item) => item.key === act
 const activeDraftOption = computed(() => publishTypes.find((item) => item.key === currentDraft.value?.type) || activeOption.value)
 const coverAssets = computed(() => currentDraft.value?.assets || [])
 const previewAsset = computed(() => currentDraft.value?.assets?.find((asset) => asset.kind === 'video') || currentDraft.value?.assets?.[0])
+const selectedCoverUrl = computed(() => {
+  const draft = currentDraft.value
+  if (!draft) {
+    return ''
+  }
+  if (draft.type === 'video') {
+    return draft.coverLocalUrl || ''
+  }
+  return draft.assets.find((asset) => asset.assetId === draft.coverAssetId)?.url || ''
+})
 const drawerTabs = computed(() => publishTypes.map((item) => ({
   key: item.key,
   label: `${item.shortLabel}笔记`,
@@ -143,6 +153,7 @@ watch(currentDraft, (draft) => {
   form.scheduledAt = draft.scheduledAt || ''
   form.topics = [...(draft.topics || [])]
   bodyTopics.value = extractTopics(draft.body || '')
+  ensureDefaultCover(draft)
 }, { immediate: true })
 
 onMounted(() => {
@@ -200,6 +211,15 @@ async function appendImageFiles(event) {
 
 async function deleteImage(assetId) {
   await draftStore.deleteCurrentImage(assetId)
+}
+
+async function selectImageCover(assetId) {
+  await updateDraft({
+    coverAssetId: assetId,
+    coverBlob: null,
+    coverName: '',
+    coverType: ''
+  })
 }
 
 async function createDraftFromFiles(fileList, draftType = activeType.value) {
@@ -348,27 +368,6 @@ async function publishDraft() {
   }
 }
 
-async function handleCoverInput(event) {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-  if (!file) {
-    return
-  }
-  if (!['image/jpeg', 'image/png'].includes(file.type)) {
-    showMessage('封面只支持 JPG、JPEG 或 PNG 格式。', 'warning')
-    return
-  }
-  if (file.size > 100 * 1024 * 1024) {
-    showMessage('封面大小不能超过 100MB。', 'warning')
-    return
-  }
-  await updateDraft({
-    coverBlob: file,
-    coverName: file.name,
-    coverType: file.type
-  })
-}
-
 function showMessage(text, type = 'info') {
   message.text = text
   message.type = type
@@ -395,6 +394,9 @@ function validatePublishForm() {
   }
   if (draft.type === 'image' && (draft.assets.length < 1 || draft.assets.length > 19)) {
     throw new Error('图片作品必须包含1到19张图片')
+  }
+  if (draft.type === 'image' && !draft.assets.some((asset) => asset.assetId === draft.coverAssetId && asset.kind === 'image')) {
+    throw new Error('请选择一张已上传图片作为封面')
   }
   if (form.scheduled) {
     const scheduledTime = new Date(form.scheduledAt)
@@ -426,24 +428,116 @@ function buildPublishPayload() {
 
 async function resolveCoverFile() {
   const draft = currentDraft.value
-  if (draft.coverBlob) {
-    return new File([draft.coverBlob], draft.coverName || 'cover.jpg', {
-      type: draft.coverType || draft.coverBlob.type || 'image/jpeg'
+  if (draft.type === 'video') {
+    const coverBlob = draft.coverBlob || await captureVideoCover(0, { silent: true })
+    if (!coverBlob) {
+      throw new Error('请从视频中截取一帧作为封面')
+    }
+    return new File([coverBlob], draft.coverName || 'video-cover.jpg', {
+      type: draft.coverType || coverBlob.type || 'image/jpeg'
     })
   }
-  if (draft.type === 'video') {
-    throw new Error('请为视频作品上传一张封面图')
-  }
 
-  const selected = draft.assets.find((asset) => asset.assetId === draft.coverAssetId) || draft.assets[0]
+  const selected = draft.assets.find((asset) => asset.assetId === draft.coverAssetId)
   if (!selected?.blob) {
-    throw new Error('无法读取所选封面，请重新上传封面图')
+    throw new Error('请选择一张已上传图片作为封面')
   }
   if (['image/jpeg', 'image/png'].includes(selected.blob.type)) {
     const extension = selected.blob.type === 'image/png' ? 'png' : 'jpg'
     return new File([selected.blob], `cover.${extension}`, { type: selected.blob.type })
   }
   return convertImageToPng(selected.blob)
+}
+
+async function ensureDefaultCover(draft) {
+  if (draft.type === 'image') {
+    const firstImage = draft.assets.find((asset) => asset.kind === 'image')
+    if (firstImage && !draft.assets.some((asset) => asset.assetId === draft.coverAssetId && asset.kind === 'image')) {
+      await updateDraft({ coverAssetId: firstImage.assetId })
+    }
+    return
+  }
+
+  if (draft.type === 'video' && !draft.coverBlob) {
+    await captureVideoCover(0, { silent: true })
+  }
+}
+
+async function captureVideoCover(seconds = 0, options = {}) {
+  const videoAsset = currentDraft.value?.assets?.find((asset) => asset.kind === 'video')
+  if (!videoAsset?.blob) {
+    if (!options.silent) {
+      showMessage('无法读取视频素材，请重新上传视频后再截取封面', 'error')
+    }
+    return null
+  }
+
+  try {
+    const blob = await extractVideoFrame(videoAsset.blob, seconds)
+    await updateDraft({
+      coverBlob: blob,
+      coverName: 'video-cover.jpg',
+      coverType: blob.type,
+      coverAssetId: ''
+    })
+    if (!options.silent) {
+      showMessage('已截取视频封面', 'success')
+    }
+    return blob
+  } catch (error) {
+    if (!options.silent) {
+      showMessage(error.message || '视频封面截取失败，请稍后重试', 'error')
+    }
+    return null
+  }
+}
+
+function extractVideoFrame(blob, seconds = 0) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    const objectUrl = URL.createObjectURL(blob)
+    let settled = false
+
+    video.preload = 'metadata'
+    video.muted = true
+    video.playsInline = true
+    video.src = objectUrl
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl)
+      video.removeAttribute('src')
+      video.load()
+    }
+    const finishWithFrame = () => {
+      if (settled) {
+        return
+      }
+      settled = true
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob((result) => {
+        cleanup()
+        result ? resolve(result) : reject(new Error('视频封面生成失败'))
+      }, 'image/jpeg', 0.92)
+    }
+
+    video.onerror = () => {
+      settled = true
+      cleanup()
+      reject(new Error('无法加载视频，封面截取失败'))
+    }
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0
+      const targetTime = Math.min(Math.max(seconds, 0), Math.max(duration - 0.1, 0))
+      video.currentTime = targetTime
+      if (targetTime === 0) {
+        video.onloadeddata = finishWithFrame
+      }
+    }
+    video.onseeked = finishWithFrame
+  })
 }
 
 async function convertImageToPng(blob) {

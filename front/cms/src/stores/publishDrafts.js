@@ -220,7 +220,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         topics: [],
         createdAt: now,
         updatedAt: now,
-        coverAssetId: assets[0]?.assetId || '',
+        coverAssetId: type === 'image' ? (assets[0]?.assetId || '') : '',
         idempotencyKey: createId('publish'),
         coverBlob: null,
         coverName: '',
@@ -316,7 +316,8 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
       const nextAssets = [...this.currentDraft.assets, ...normalizedAssets]
       await this.saveCurrentDraft({
         assets: nextAssets,
-        assetMetas: nextAssets.map(toAssetMeta)
+        assetMetas: nextAssets.map(toAssetMeta),
+        coverAssetId: this.currentDraft.coverAssetId || nextAssets[0]?.assetId || ''
       })
     },
     async deleteCurrentImage(assetId) {

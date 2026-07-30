@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 
+	app "gl-app/api/internal/handler/app"
 	media "gl-app/api/internal/handler/media"
 	na "gl-app/api/internal/handler/na"
 	"gl-app/api/internal/svc"
@@ -12,6 +13,18 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// App首页推荐作品列表
+				Method:  http.MethodGet,
+				Path:    "/recommend/works",
+				Handler: app.GetRecommendWorkListHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/app/v1"),
+	)
+
 	server.AddRoutes(
 		[]rest.Route{
 			{

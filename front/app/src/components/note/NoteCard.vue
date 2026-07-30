@@ -1,11 +1,17 @@
 <script setup>
+import { computed } from 'vue'
+
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
-defineProps({
+const props = defineProps({
   note: {
     type: Object,
     required: true
   }
+})
+
+const authorInitial = computed(() => {
+  return String(props.note.author || '咕').trim().slice(0, 1).toUpperCase()
 })
 </script>
 
@@ -52,9 +58,14 @@ defineProps({
           @click.prevent
         >
           <img
+            v-if="note.avatar"
             :src="note.avatar"
             :alt="note.author"
           >
+          <span
+            v-else
+            class="note-card__avatar-fallback"
+          >{{ authorInitial }}</span>
           <span>{{ note.author }}</span>
         </a>
         <button
@@ -80,21 +91,23 @@ defineProps({
   margin: 0 0 24px;
   break-inside: avoid;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--color-surface);
 }
 
 .note-card__media {
   position: relative;
+  max-height: 430px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--color-fill);
 }
 
 .note-card__media img {
   width: 100%;
-  aspect-ratio: auto;
+  max-height: 430px;
   object-fit: cover;
+  object-position: center top;
   transition: transform 0.24s ease;
 }
 
@@ -202,6 +215,20 @@ defineProps({
   object-fit: cover;
 }
 
+.note-card__avatar-fallback {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  background: #2e3036;
+}
+
 .note-card__author span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -219,12 +246,17 @@ defineProps({
 @media (max-width: 900px) {
   .note-card {
     margin-bottom: 18px;
-    border-radius: 8px;
+    border-radius: 12px;
   }
 
   .note-card__media,
   .note-card__quote {
-    border-radius: 8px;
+    border-radius: 12px;
+  }
+
+  .note-card__media,
+  .note-card__media img {
+    max-height: 330px;
   }
 
   .note-card__body {

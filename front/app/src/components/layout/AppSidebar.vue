@@ -1,6 +1,13 @@
 <script setup>
+import { computed } from 'vue'
+
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
+import { useAuthStore } from '@/stores/auth'
+
+const emit = defineEmits(['login-request'])
+const authStore = useAuthStore()
+const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => item.key !== 'profile'))
 </script>
 
 <template>
@@ -18,7 +25,7 @@ import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
 
     <nav class="sidebar-nav">
       <RouterLink
-        v-for="item in primaryNavItems"
+        v-for="item in visiblePrimaryNavItems"
         :key="item.key"
         class="sidebar-link"
         :class="{ active: item.active }"
@@ -35,6 +42,33 @@ import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
           v-if="item.badge"
           class="sidebar-badge"
         >{{ item.badge }}</small>
+      </RouterLink>
+      <button
+        v-if="!authStore.isLoggedIn"
+        type="button"
+        class="sidebar-link sidebar-login"
+        @click="emit('login-request')"
+      >
+        <span class="sidebar-icon">
+          <BaseIcon
+            name="user"
+            size="20"
+          />
+        </span>
+        <span>登录</span>
+      </button>
+      <RouterLink
+        v-else
+        class="sidebar-link"
+        to="/"
+      >
+        <span class="sidebar-icon">
+          <BaseIcon
+            name="user"
+            size="20"
+          />
+        </span>
+        <span>{{ authStore.user?.nickName || '我' }}</span>
       </RouterLink>
     </nav>
 
@@ -111,6 +145,13 @@ import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
   color: #202124;
   font-weight: 700;
   transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-login {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
 }
 
 .sidebar-link:hover,

@@ -168,6 +168,42 @@ type LoginResp struct {
 	RefreshAfter int64  `json:"refreshAfter"`
 }
 
+type RecommendAuthorItem struct {
+	UserId    int64  `json:"userId"`
+	NickName  string `json:"nickName"`
+	AvatarUrl string `json:"avatarUrl,optional"`
+}
+
+type RecommendLikeInfo struct {
+	Liked bool   `json:"liked"`
+	Count int64  `json:"count"`
+	Text  string `json:"text"`
+}
+
+type RecommendWorkItem struct {
+	WorkId         int64               `json:"workId"`
+	Type           string              `json:"type"`
+	Title          string              `json:"title"`
+	ContentExcerpt string              `json:"contentExcerpt"`
+	CoverUrl       string              `json:"coverUrl"`
+	DurationMs     int64               `json:"durationMs"`
+	PublishedAt    string              `json:"publishedAt"`
+	Author         RecommendAuthorItem `json:"author"`
+	Like           RecommendLikeInfo   `json:"like"`
+}
+
+type RecommendWorkListReq struct {
+	Page     int64 `form:"page,optional"`
+	PageSize int64 `form:"pageSize,optional"`
+}
+
+type RecommendWorkListResp struct {
+	Page     int64               `json:"page"`
+	PageSize int64               `json:"pageSize"`
+	HasMore  bool                `json:"hasMore"`
+	List     []RecommendWorkItem `json:"list"`
+}
+
 type RegisterReq struct {
 	Email            string `json:"email"`
 	NickName         string `json:"nickName"`

@@ -1,4 +1,8 @@
 :root {
+  --van-primary-color: #ff2442;
+  --van-button-primary-background: #ff2442;
+  --van-button-primary-border-color: #ff2442;
+  --van-radius-md: 8px;
   --color-primary: #ff2442;
   --color-primary-strong: #e81235;
   --color-text: #222225;

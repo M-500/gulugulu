@@ -1,0 +1,47 @@
+syntax = "v1"
+
+info (
+	title:   "App前台接口"
+	desc:    "移动端和前台App公开接口"
+	author:  "linlin"
+	email:   "1978992154@qq.com"
+	version: "v1"
+)
+
+type (
+	RecommendWorkListReq {
+		Page     int64 `form:"page,optional"`
+		PageSize int64 `form:"pageSize,optional"`
+	}
+
+	RecommendAuthorItem {
+		UserId    int64  `json:"userId"`
+		NickName  string `json:"nickName"`
+		AvatarUrl string `json:"avatarUrl,optional"`
+	}
+
+	RecommendLikeInfo {
+		Liked bool   `json:"liked"`
+		Count int64  `json:"count"`
+		Text  string `json:"text"`
+	}
+
+	RecommendWorkItem {
+		WorkId         int64               `json:"workId"`
+		Type           string              `json:"type"`
+		Title          string              `json:"title"`
+		ContentExcerpt string              `json:"contentExcerpt"`
+		CoverUrl       string              `json:"coverUrl"`
+		DurationMs     int64               `json:"durationMs"`
+		PublishedAt    string              `json:"publishedAt"`
+		Author         RecommendAuthorItem `json:"author"`
+		Like           RecommendLikeInfo   `json:"like"`
+	}
+
+	RecommendWorkListResp {
+		Page     int64               `json:"page"`
+		PageSize int64               `json:"pageSize"`
+		HasMore  bool                `json:"hasMore"`
+		List     []RecommendWorkItem `json:"list"`
+	}
+)

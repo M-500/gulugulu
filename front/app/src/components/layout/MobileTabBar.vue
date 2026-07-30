@@ -1,8 +1,13 @@
 <script setup>
+import { computed } from 'vue'
+
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import { primaryNavItems } from '@/constants/navigation'
+import { useAuthStore } from '@/stores/auth'
 
-const items = primaryNavItems.slice(0, 7)
+const emit = defineEmits(['login-request'])
+const authStore = useAuthStore()
+const items = computed(() => primaryNavItems.filter((item) => item.key !== 'profile').slice(0, 7))
 </script>
 
 <template>
@@ -23,6 +28,17 @@ const items = primaryNavItems.slice(0, 7)
         size="22"
       />
     </RouterLink>
+    <button
+      type="button"
+      class="mobile-tabbar__item"
+      :aria-label="authStore.isLoggedIn ? '我的' : '登录'"
+      @click="authStore.isLoggedIn ? undefined : emit('login-request')"
+    >
+      <BaseIcon
+        name="user"
+        size="22"
+      />
+    </button>
   </nav>
 </template>
 
@@ -50,6 +66,8 @@ const items = primaryNavItems.slice(0, 7)
   align-items: center;
   justify-content: center;
   color: #666a72;
+  border: 0;
+  background: transparent;
 }
 
 .mobile-tabbar__item.active {

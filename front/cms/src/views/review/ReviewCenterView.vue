@@ -45,6 +45,13 @@
       @close="closeDetail"
       @reject="rejecting = true"
     />
+    <ApproveConfirmDialog
+      v-if="approving"
+      :submitting="submitting"
+      :title="detail?.title"
+      @close="approving = false"
+      @confirm="confirmApproveWork"
+    />
     <RejectDialog
       v-if="rejecting"
       :submitting="submitting"
@@ -59,6 +66,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import { auditWork, getAuditWorkDetail, getAuditWorks } from '@/api/reviews'
 
+import ApproveConfirmDialog from './components/ApproveConfirmDialog.vue'
 import RejectDialog from './components/RejectDialog.vue'
 import ReviewCard from './components/ReviewCard.vue'
 import ReviewDetailDrawer from './components/ReviewDetailDrawer.vue'
@@ -81,6 +89,7 @@ const detail = ref(null)
 const detailLoading = ref(false)
 const detailError = ref('')
 const rejecting = ref(false)
+const approving = ref(false)
 const submitting = ref(false)
 
 const tabs = computed(() => [
@@ -158,10 +167,14 @@ function closeDetail() {
   selectedWork.value = null
   detail.value = null
   rejecting.value = false
+  approving.value = false
 }
 
 async function approveWork() {
-  if (!window.confirm(`确认通过作品“${detail.value.title}”吗？审核通过后将按作品发布设置生效。`)) return
+  approving.value = true
+}
+
+async function confirmApproveWork() {
   await submitDecision('approve')
 }
 
@@ -173,6 +186,7 @@ async function submitDecision(decision, reason = '') {
   submitting.value = true
   try {
     await auditWork(detail.value.workId, decision, reason)
+    approving.value = false
     rejecting.value = false
     selectedWork.value = null
     detail.value = null

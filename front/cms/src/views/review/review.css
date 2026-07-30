@@ -349,7 +349,8 @@
 }
 
 .review-drawer,
-.reject-dialog {
+.reject-dialog,
+.approve-dialog {
   position: fixed;
   z-index: 60;
   inset: 0;
@@ -546,13 +547,15 @@
   color: #fff;
 }
 
-.reject-dialog {
+.reject-dialog,
+.approve-dialog {
   z-index: 70;
   align-items: center;
   justify-content: center;
 }
 
-.reject-dialog form {
+.reject-dialog form,
+.approve-dialog__panel {
   width: min(460px, calc(100vw - 32px));
   border-radius: 16px;
   background: #fff;
@@ -561,14 +564,16 @@
 }
 
 .reject-dialog header,
-.reject-dialog header > div {
+.reject-dialog header > div,
+.approve-dialog header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.reject-dialog header > div > span {
+.reject-dialog header > div > span,
+.approve-dialog header > span {
   display: grid;
   width: 36px;
   height: 36px;
@@ -579,15 +584,26 @@
   font-weight: 800;
 }
 
+.approve-dialog header {
+  justify-content: flex-start;
+}
+
+.approve-dialog header > span {
+  background: #eaf8f0;
+  color: #2d9d61;
+}
+
 .reject-dialog h2 {
   margin: 0;
   font-size: 17px;
 }
 
-.reject-dialog header p {
+.reject-dialog header p,
+.approve-dialog header p {
   margin: 5px 0 0;
   color: #939aa5;
   font-size: 11px;
+  line-height: 1.7;
 }
 
 .reject-dialog header button {
@@ -631,14 +647,16 @@
   text-align: right;
 }
 
-.reject-dialog footer {
+.reject-dialog footer,
+.approve-dialog footer {
   display: flex;
   justify-content: flex-end;
   gap: 9px;
   margin-top: 18px;
 }
 
-.reject-dialog footer button {
+.reject-dialog footer button,
+.approve-dialog footer button {
   background: #f0f2f5;
   color: #596273;
   padding: 0 18px;
@@ -647,6 +665,49 @@
 .reject-dialog footer .is-danger {
   background: #dc4c58;
   color: #fff;
+}
+
+.approve-dialog__work {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+  border: 1px solid #e5e8ee;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.approve-dialog__work small {
+  color: #9ba3af;
+  font-size: 10px;
+}
+
+.approve-dialog__work strong {
+  overflow: hidden;
+  color: #273142;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approve-dialog__hint {
+  margin: 14px 0 0;
+  border-radius: 10px;
+  background: #f0f7ff;
+  color: #50708f;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 11px 12px;
+}
+
+.approve-dialog footer .is-approve {
+  background: #293244;
+  color: #fff;
+}
+
+.approve-dialog footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 @keyframes review-spin {

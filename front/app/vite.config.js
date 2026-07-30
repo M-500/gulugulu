@@ -11,6 +11,16 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/app': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8888',
+        changeOrigin: true
+      },
+      '/na': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8888',
+        changeOrigin: true
+      }
+    }
   }
 })
