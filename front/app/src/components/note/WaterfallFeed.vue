@@ -7,6 +7,8 @@ defineProps({
     default: () => []
   }
 })
+
+defineEmits(['open-note', 'open-author'])
 </script>
 
 <template>
@@ -18,6 +20,8 @@ defineProps({
       v-for="note in notes"
       :key="note.id"
       :note="note"
+      @open-author="$emit('open-author', $event)"
+      @open="$emit('open-note', $event)"
     />
   </section>
 </template>

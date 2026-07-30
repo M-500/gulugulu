@@ -8,6 +8,14 @@ const routes = [
     meta: {
       title: '首页'
     }
+  },
+  {
+    path: '/users/:userId',
+    name: 'user-profile',
+    component: () => import('@/views/profile/UserProfileView.vue'),
+    meta: {
+      title: '用户主页'
+    }
   }
 ]
 
