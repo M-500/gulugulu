@@ -29,6 +29,7 @@ type Config struct {
 		UseSSL          bool
 		TempBucket      string
 		FormalBucket    string
+		PublicBucket    string
 		PresignExpire   int64
 	}
 

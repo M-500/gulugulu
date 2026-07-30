@@ -3,7 +3,8 @@ package na
 import (
 	"context"
 	"github.com/pkg/errors"
-	"gl-app/api/internal/models/user"
+	userlogic "gl-app/api/internal/logic/user"
+	userModel "gl-app/api/internal/models/user"
 	"strings"
 
 	"gl-app/api/internal/svc"
@@ -40,7 +41,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	}
 	userInfo, err := l.svcCtx.UserRepo.FindOneByEmail(l.ctx, req.Email)
 	if err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+		if errors.Is(err, userModel.ErrNotFound) {
 			return nil, errors.New("邮箱不存在")
 		}
 		return nil, errors.New("查询用户信息失败")
@@ -50,10 +51,18 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	if err != nil {
 		return nil, errors.New("生成token失败")
 	}
+	profile, err := userlogic.QueryUserProfile(l.ctx, l.svcCtx, userInfo.Id)
+	if err != nil {
+		l.Errorf("登录成功后查询用户基础信息失败，用户ID：%d，错误：%v", userInfo.Id, err)
+		return nil, errors.New("查询用户基础信息失败")
+	}
 	res := types.LoginResp{
 		AccessToken:  tokenResp.AccessToken,
 		AccessExpire: tokenResp.AccessExpire,
 		RefreshAfter: tokenResp.RefreshAfter,
+		UserId:       profile.UserId,
+		NickName:     profile.NickName,
+		AvatarUrl:    profile.AvatarUrl,
 	}
 	return &res, nil
 }

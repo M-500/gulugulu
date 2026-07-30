@@ -29,6 +29,7 @@ Minio:
   UseSSL: false
   TempBucket: gulugulu-temp
   FormalBucket: gulugulu-media
+  PublicBucket: gulugulu-public
   PresignExpire: 900
 
 # Kafka媒体处理队列。API通过kq.Pusher投递，mediaworker通过kq消费。

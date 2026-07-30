@@ -2,6 +2,8 @@
   <div class="dashboard-shell">
     <DashboardHeader
       :menu-open="menuOpen"
+      :profile="authStore.profile"
+      @profile="openProfile"
       @toggle-menu="menuOpen = !menuOpen"
       @logout="logout"
     />
@@ -27,6 +29,7 @@
         <PublishView v-else-if="activeMenu === 'publish'" />
         <WorksManagementView v-else-if="activeMenu === 'works'" />
         <ReviewCenterView v-else-if="activeMenu === 'review'" @count-change="reviewCount = $event" />
+        <ProfileView v-else-if="activeMenu === 'profile'" />
         <DashboardPlaceholder v-else :menu="currentMenu" />
       </main>
     </div>
@@ -34,10 +37,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { getCurrentUser } from '@/api/profile'
 
 import DashboardHeader from './components/DashboardHeader.vue'
 import DashboardOverview from './components/DashboardOverview.vue'
@@ -46,6 +50,7 @@ import DashboardSidebar from './components/DashboardSidebar.vue'
 import PublishView from '../publish/PublishView.vue'
 import WorksManagementView from '../works/WorksManagementView.vue'
 import ReviewCenterView from '../review/ReviewCenterView.vue'
+import ProfileView from '../profile/ProfileView.vue'
 import { dashboardMenus } from './dashboardMenus'
 
 const router = useRouter()
@@ -56,6 +61,16 @@ const menuOpen = ref(false)
 const reviewCount = ref(0)
 const currentMenu = computed(() => dashboardMenus.find((item) => item.key === activeMenu.value))
 
+onMounted(loadProfile)
+
+async function loadProfile() {
+  try {
+    authStore.setProfile(await getCurrentUser())
+  } catch {
+    // 页面主体接口会处理登录失效，这里不阻断工作台加载。
+  }
+}
+
 function handleMenuSelect(key) {
   activeMenu.value = key
   menuOpen.value = false
@@ -64,6 +79,11 @@ function handleMenuSelect(key) {
 function logout() {
   authStore.clearSession()
   router.push({ name: 'Auth' })
+}
+
+function openProfile() {
+  activeMenu.value = 'profile'
+  menuOpen.value = false
 }
 </script>
 

@@ -5,6 +5,7 @@ CREATE TABLE `user` (
   `deleted_at` datetime DEFAULT NULL COMMENT '软删除标记',
   `email` varchar(255) NOT NULL COMMENT '邮箱，唯一key',
   `nickname` varchar(64) NOT NULL DEFAULT '' COMMENT '昵称',
+  `avatar` varchar(512) NOT NULL DEFAULT '' COMMENT '用户头像在正式对象存储桶中的对象Key',
   `password` varchar(255) NOT NULL COMMENT '密码',
   `sex` tinyint NOT NULL DEFAULT '0' COMMENT '性别',
   `last_login_at` datetime DEFAULT NULL COMMENT '最后一次登录时间',

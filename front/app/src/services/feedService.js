@@ -19,6 +19,7 @@ function mapRecommendWorkToNote(item) {
   const authorName = item.author?.nickName || '咕噜用户'
   return {
     id: item.workId,
+    authorId: item.author?.userId || 0,
     title: item.title || item.contentExcerpt || '未命名作品',
     author: authorName,
     avatar: item.author?.avatarUrl || '',

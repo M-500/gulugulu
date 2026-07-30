@@ -7,6 +7,7 @@ import {
 
 const TOKEN_KEY = 'gulugulu_cms_access_token'
 const TOKEN_META_KEY = 'gulugulu_cms_token_meta'
+const PROFILE_KEY = 'gulugulu_cms_profile'
 
 function getStoredTokenMeta() {
   try {
@@ -17,10 +18,20 @@ function getStoredTokenMeta() {
   }
 }
 
+function getStoredProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}')
+  } catch {
+    localStorage.removeItem(PROFILE_KEY)
+    return {}
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: localStorage.getItem(TOKEN_KEY) || '',
-    tokenMeta: getStoredTokenMeta()
+    tokenMeta: getStoredTokenMeta(),
+    profile: getStoredProfile()
   }),
   getters: {
     isLoggedIn: (state) => {
@@ -49,6 +60,18 @@ export const useAuthStore = defineStore('auth', {
 
       localStorage.setItem(TOKEN_KEY, this.accessToken)
       localStorage.setItem(TOKEN_META_KEY, JSON.stringify(this.tokenMeta))
+
+      if (payload.userId || payload.nickName || payload.avatarUrl) {
+        this.setProfile({
+          userId: payload.userId || 0,
+          nickName: payload.nickName || '咕噜创作者',
+          avatarUrl: payload.avatarUrl || ''
+        })
+      }
+    },
+    setProfile(profile) {
+      this.profile = profile || {}
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile))
     },
     async login(form) {
       const session = await loginRequest({
@@ -75,8 +98,10 @@ export const useAuthStore = defineStore('auth', {
     clearSession() {
       this.accessToken = ''
       this.tokenMeta = {}
+      this.profile = {}
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(TOKEN_META_KEY)
+      localStorage.removeItem(PROFILE_KEY)
     }
   }
 })

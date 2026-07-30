@@ -166,6 +166,9 @@ type LoginResp struct {
 	AccessToken  string `json:"accessToken"`
 	AccessExpire int64  `json:"accessExpire"`
 	RefreshAfter int64  `json:"refreshAfter"`
+	UserId       int64  `json:"userId"`
+	NickName     string `json:"nickName"`
+	AvatarUrl    string `json:"avatarUrl,optional"`
 }
 
 type RecommendAuthorItem struct {
@@ -225,6 +228,31 @@ type UpdateCreatorWorkTitleReq struct {
 type UpdateCreatorWorkVisibilityReq struct {
 	WorkId     int64  `path:"workId"`
 	Visibility string `json:"visibility"`
+}
+
+type UpdateUserInfoReq struct {
+}
+
+type UpdateUserProfileReq struct {
+	NickName string `json:"nickName"`
+}
+
+type UploadUserAvatarReq struct {
+}
+
+type User struct {
+	Id       int64  `json:"id"`
+	Email    string `json:"email"`
+	NickName string `json:"nickName"`
+	Sex      int64  `json:"sex"`
+	Avatar   string `json:"avatar"`
+}
+
+type UserProfileResp struct {
+	UserId    int64  `json:"userId"`
+	Email     string `json:"email"`
+	NickName  string `json:"nickName"`
+	AvatarUrl string `json:"avatarUrl,optional"`
 }
 
 type WorkAssetItem struct {

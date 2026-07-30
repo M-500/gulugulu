@@ -44,8 +44,10 @@ type (
         AccessToken string `json:"accessToken"`
         AccessExpire int64  `json:"accessExpire"`
         RefreshAfter int64  `json:"refreshAfter"`
+        UserId int64 `json:"userId"`
+        NickName string `json:"nickName"`
+        AvatarUrl string `json:"avatarUrl,optional"`
     }
 )
 
 // 首页获取推荐笔记
-

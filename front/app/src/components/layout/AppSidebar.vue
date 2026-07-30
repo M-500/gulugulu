@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 
+import Avatar from '@/components/Avatar/avatar.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import { primaryNavItems, secondaryNavItems } from '@/constants/navigation'
 import { useAuthStore } from '@/stores/auth'
@@ -60,15 +61,16 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
       <RouterLink
         v-else
         class="sidebar-link"
-        to="/"
+        :to="`/users/${authStore.user?.userId || 'me'}`"
       >
         <span class="sidebar-icon">
-          <BaseIcon
-            name="user"
-            size="20"
+          <Avatar
+            :avatar-url="authStore.user?.avatarUrl"
+            username="我"
+            size="24"
           />
         </span>
-        <span>{{ authStore.user?.nickName || '我' }}</span>
+        <span>我</span>
       </RouterLink>
     </nav>
 
@@ -161,6 +163,8 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
 
 .sidebar-icon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #383a40;
 }
 

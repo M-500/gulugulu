@@ -20,6 +20,10 @@ export default defineConfig({
       '/na': {
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:8888',
         changeOrigin: true
+      },
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8888',
+        changeOrigin: true
       }
     }
   }

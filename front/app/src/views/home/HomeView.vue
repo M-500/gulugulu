@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Button as VanButton } from 'vant'
 
 import LoginDialog from '@/components/auth/LoginDialog.vue'
@@ -8,14 +9,18 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import MobileTabBar from '@/components/layout/MobileTabBar.vue'
 import SearchHeader from '@/components/layout/SearchHeader.vue'
 import FeedState from '@/components/note/FeedState.vue'
+import ImageWorkDialog from '@/components/note/ImageWorkDialog.vue'
 import RecommendTabs from '@/components/note/RecommendTabs.vue'
 import WaterfallFeed from '@/components/note/WaterfallFeed.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
 
 const keyword = ref('')
+const router = useRouter()
 const activeChannel = ref('recommend')
 const showLoginDialog = ref(false)
+const selectedImageNote = ref(null)
+const showImageDialog = ref(false)
 const feedStore = useFeedStore()
 const authStore = useAuthStore()
 const recommendTabs = [
@@ -45,7 +50,9 @@ const notes = computed(() => {
 
 onMounted(() => {
   feedStore.fetchHomeFeed()
-  if (!authStore.isLoggedIn) {
+  if (authStore.isLoggedIn) {
+    authStore.fetchUserInfo().catch(() => {})
+  } else {
     window.setTimeout(() => {
       showLoginDialog.value = true
     }, 500)
@@ -54,6 +61,15 @@ onMounted(() => {
 
 function handleChannelChange() {
   feedStore.fetchHomeFeed()
+}
+
+function openImageWork(note) {
+  selectedImageNote.value = note
+  showImageDialog.value = true
+}
+
+function openAuthorProfile(note) {
+  router.push({ name: 'user-profile', params: { userId: note.authorId || note.id || 'mock' } })
 }
 </script>
 
@@ -86,7 +102,11 @@ function handleChannelChange() {
           message="暂时没有符合条件的作品"
         />
         <template v-else>
-          <WaterfallFeed :notes="notes" />
+          <WaterfallFeed
+            :notes="notes"
+            @open-author="openAuthorProfile"
+            @open-note="openImageWork"
+          />
           <div
             v-if="feedStore.hasMore || feedStore.loading"
             class="home-more"
@@ -107,6 +127,12 @@ function handleChannelChange() {
     <FloatingActions />
     <MobileTabBar @login-request="showLoginDialog = true" />
     <LoginDialog v-model:show="showLoginDialog" />
+    <ImageWorkDialog
+      v-model:show="showImageDialog"
+      :note="selectedImageNote"
+      @login-request="showLoginDialog = true"
+      @open-author="openAuthorProfile"
+    />
   </div>
 </template>
 

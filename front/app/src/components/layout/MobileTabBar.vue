@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 
+import Avatar from '@/components/Avatar/avatar.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import { primaryNavItems } from '@/constants/navigation'
 import { useAuthStore } from '@/stores/auth'
@@ -28,11 +29,24 @@ const items = computed(() => primaryNavItems.filter((item) => item.key !== 'prof
         size="22"
       />
     </RouterLink>
+    <RouterLink
+      v-if="authStore.isLoggedIn"
+      class="mobile-tabbar__item"
+      :to="`/users/${authStore.user?.userId || 'me'}`"
+      aria-label="我的"
+    >
+      <Avatar
+        :avatar-url="authStore.user?.avatarUrl"
+        username="我"
+        size="24"
+      />
+    </RouterLink>
     <button
+      v-else
       type="button"
       class="mobile-tabbar__item"
-      :aria-label="authStore.isLoggedIn ? '我的' : '登录'"
-      @click="authStore.isLoggedIn ? undefined : emit('login-request')"
+      aria-label="登录"
+      @click="emit('login-request')"
     >
       <BaseIcon
         name="user"
@@ -68,6 +82,7 @@ const items = computed(() => primaryNavItems.filter((item) => item.key !== 'prof
   color: #666a72;
   border: 0;
   background: transparent;
+  text-decoration: none;
 }
 
 .mobile-tabbar__item.active {

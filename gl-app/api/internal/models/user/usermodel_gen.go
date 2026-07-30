@@ -47,6 +47,7 @@ type (
 		DeletedAt   sql.NullTime `db:"deleted_at"`    // 软删除标记
 		Email       string       `db:"email"`         // 邮箱，唯一key
 		Nickname    string       `db:"nickname"`      // 昵称
+		Avatar      string       `db:"avatar"`        // 用户头像在正式对象存储桶中的对象Key
 		Password    string       `db:"password"`      // 密码
 		Sex         int64        `db:"sex"`           // 性别
 		LastLoginAt sql.NullTime `db:"last_login_at"` // 最后一次登录时间
@@ -116,8 +117,8 @@ func (m *defaultUserModel) Insert(ctx context.Context, data *User) (sql.Result, 
 	userEmailKey := fmt.Sprintf("%s%v", cacheUserEmailPrefix, data.Email)
 	userIdKey := fmt.Sprintf("%s%v", cacheUserIdPrefix, data.Id)
 	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, userRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.DeletedAt, data.Email, data.Nickname, data.Password, data.Sex, data.LastLoginAt)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, userRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.DeletedAt, data.Email, data.Nickname, data.Avatar, data.Password, data.Sex, data.LastLoginAt)
 	}, userEmailKey, userIdKey)
 	return ret, err
 }
@@ -132,7 +133,7 @@ func (m *defaultUserModel) Update(ctx context.Context, newData *User) error {
 	userIdKey := fmt.Sprintf("%s%v", cacheUserIdPrefix, data.Id)
 	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, userRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.Email, newData.Nickname, newData.Password, newData.Sex, newData.LastLoginAt, newData.Id)
+		return conn.ExecCtx(ctx, query, newData.DeletedAt, newData.Email, newData.Nickname, newData.Avatar, newData.Password, newData.Sex, newData.LastLoginAt, newData.Id)
 	}, userEmailKey, userIdKey)
 	return err
 }

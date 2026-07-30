@@ -13,6 +13,7 @@ import (
 	"na/na.api"
 	"media/media.api"
 	"publish/publish.api"
+	"user/user.api"
 )
 
 // No Need Login
@@ -32,6 +33,34 @@ service gulu {
 	@doc "注册接口"
 	@handler register
 	post /user/register (RegisterReq) returns (RegisterResp)
+}
+
+// Current user profile
+@server (
+	prefix: api/v1
+	group:  user
+	jwt:    JwtAuth
+)
+service gulu {
+	@doc "获取当前用户基本信息"
+	@handler getUserInfo
+	get /user/info returns (UserProfileResp)
+
+	@doc "修改当前用户基本信息"
+	@handler updateUserInfo
+	put /user/info returns (UserProfileResp)
+
+	@doc "获取当前用户资料"
+	@handler getCurrentUser
+	get /users/me returns (UserProfileResp)
+
+	@doc "修改当前用户资料"
+	@handler updateCurrentUser
+	put /users/me (UpdateUserProfileReq) returns (UserProfileResp)
+
+	@doc "上传当前用户头像"
+	@handler uploadCurrentUserAvatar
+	post /users/me/avatar (UploadUserAvatarReq) returns (UserProfileResp)
 }
 
 // App public api

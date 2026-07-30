@@ -7,6 +7,7 @@ import (
 	app "gl-app/api/internal/handler/app"
 	media "gl-app/api/internal/handler/media"
 	na "gl-app/api/internal/handler/na"
+	user "gl-app/api/internal/handler/user"
 	"gl-app/api/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -144,5 +145,42 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 		},
 		rest.WithPrefix("/na/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// 获取当前用户基本信息
+				Method:  http.MethodGet,
+				Path:    "/user/info",
+				Handler: user.GetUserInfoHandler(serverCtx),
+			},
+			{
+				// 修改当前用户基本信息
+				Method:  http.MethodPut,
+				Path:    "/user/info",
+				Handler: user.UpdateUserInfoHandler(serverCtx),
+			},
+			{
+				// 获取当前用户资料
+				Method:  http.MethodGet,
+				Path:    "/users/me",
+				Handler: user.GetCurrentUserHandler(serverCtx),
+			},
+			{
+				// 修改当前用户资料
+				Method:  http.MethodPut,
+				Path:    "/users/me",
+				Handler: user.UpdateCurrentUserHandler(serverCtx),
+			},
+			{
+				// 上传当前用户头像
+				Method:  http.MethodPost,
+				Path:    "/users/me/avatar",
+				Handler: user.UploadCurrentUserAvatarHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
 	)
 }

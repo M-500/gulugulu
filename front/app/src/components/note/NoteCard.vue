@@ -1,18 +1,17 @@
 <script setup>
-import { computed } from 'vue'
-
+import Avatar from '@/components/Avatar/avatar.vue'
+import AuthorWrapper from '@/components/AuthorWrapper/authWrapper.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import LikeAction from '@/components/LikeAction/likeAction.vue'
 
-const props = defineProps({
+defineProps({
   note: {
     type: Object,
     required: true
   }
 })
+const emit = defineEmits(['open', 'open-author'])
 
-const authorInitial = computed(() => {
-  return String(props.note.author || '咕').trim().slice(0, 1).toUpperCase()
-})
 </script>
 
 <template>
@@ -20,6 +19,10 @@ const authorInitial = computed(() => {
     <div
       v-if="note.image"
       class="note-card__media"
+      role="button"
+      tabindex="0"
+      @click="!note.isVideo && emit('open', note)"
+      @keydown.enter.prevent="!note.isVideo && emit('open', note)"
     >
       <img
         :src="note.image"
@@ -52,33 +55,31 @@ const authorInitial = computed(() => {
     <div class="note-card__body">
       <h2>{{ note.title }}</h2>
       <div class="note-card__meta">
-        <a
-          href="/"
-          class="note-card__author"
-          @click.prevent
-        >
-          <img
-            v-if="note.avatar"
-            :src="note.avatar"
-            :alt="note.author"
+        <div class="note-card__author">
+          <button
+            type="button"
+            class="note-card__author-avatar"
+            :aria-label="`查看${note.author}的主页`"
+            @click="emit('open-author', note)"
           >
-          <span
-            v-else
-            class="note-card__avatar-fallback"
-          >{{ authorInitial }}</span>
-          <span>{{ note.author }}</span>
-        </a>
-        <button
-          type="button"
-          class="note-card__like"
-          :aria-label="`点赞 ${note.title}`"
-        >
-          <BaseIcon
-            name="heart"
-            size="16"
+            <Avatar
+              :avatar-url="note.avatar"
+              :username="note.author"
+              :size="20"
+            />
+          </button>
+          <AuthorWrapper
+            :nickname="note.author"
+            inline
+            @click="emit('open-author', note)"
           />
-          <span>{{ note.likes }}</span>
-        </button>
+        </div>
+        <LikeAction
+          class="note-card__like"
+          :count="note.likes"
+          :label="`点赞 ${note.title}`"
+          icon-size="16"
+        />
       </div>
     </div>
   </article>
@@ -207,40 +208,22 @@ const authorInitial = computed(() => {
   gap: 7px;
 }
 
-.note-card__author img {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.note-card__avatar-fallback {
+.note-card__author-avatar {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  background: #2e3036;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
 }
 
-.note-card__author span {
+.note-card__author :deep(.author-wrapper__name) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .note-card__like {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
   color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
