@@ -83,8 +83,9 @@ func (l *GetRecommendWorkListLogic) GetRecommendWorkList(req *types.RecommendWor
 			ContentExcerpt: strings.TrimSpace(row.ContentExcerpt),
 			DurationMs:     row.DurationMs,
 			Author: types.RecommendAuthorItem{
-				UserId:   row.AuthorID,
-				NickName: normalizeAuthorName(row.AuthorName),
+				UserId:    row.AuthorID,
+				NickName:  normalizeAuthorName(row.AuthorName),
+				AvatarUrl: "",
 			},
 			Like: mockRecommendLike(row.ID),
 		}
