@@ -11,6 +11,42 @@ type AppUserProfileResp struct {
 	AvatarUrl string `json:"avatarUrl,optional"`
 }
 
+type AppWorkAssetItem struct {
+	MediaId int64  `json:"mediaId"`
+	Role    string `json:"role"`
+	Sort    int64  `json:"sort"`
+	Url     string `json:"url"`
+	Width   int64  `json:"width"`
+	Height  int64  `json:"height"`
+}
+
+type AppWorkDetailReq struct {
+	WorkId int64 `path:"workId"`
+}
+
+type AppWorkDetailResp struct {
+	WorkId        int64               `json:"workId"`
+	Type          string              `json:"type"`
+	Title         string              `json:"title"`
+	Content       string              `json:"content"`
+	CoverUrl      string              `json:"coverUrl"`
+	DurationMs    int64               `json:"durationMs"`
+	VideoPlaylist string              `json:"videoPlaylist,optional"`
+	PublishedAt   string              `json:"publishedAt"`
+	Author        RecommendAuthorItem `json:"author"`
+	Like          RecommendLikeInfo   `json:"like"`
+	FavoriteCount int64               `json:"favoriteCount"`
+	CommentCount  int64               `json:"commentCount"`
+	ShareCount    int64               `json:"shareCount"`
+	Assets        []AppWorkAssetItem  `json:"assets"`
+	Topics        []AppWorkTopicItem  `json:"topics"`
+}
+
+type AppWorkTopicItem struct {
+	TopicId int64  `json:"topicId"`
+	Name    string `json:"name"`
+}
+
 type AuditWorkDetailResp struct {
 	WorkId        int64           `json:"workId"`
 	Type          string          `json:"type"`

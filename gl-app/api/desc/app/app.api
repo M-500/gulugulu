@@ -19,6 +19,24 @@ type (
 		AvatarUrl string `json:"avatarUrl,optional"`
 	}
 
+	AppWorkDetailReq {
+		WorkId int64 `path:"workId"`
+	}
+
+	AppWorkAssetItem {
+		MediaId int64  `json:"mediaId"`
+		Role    string `json:"role"`
+		Sort    int64  `json:"sort"`
+		Url     string `json:"url"`
+		Width   int64  `json:"width"`
+		Height  int64  `json:"height"`
+	}
+
+	AppWorkTopicItem {
+		TopicId int64  `json:"topicId"`
+		Name    string `json:"name"`
+	}
+
 	RecommendWorkListReq {
 		Page     int64 `form:"page,optional"`
 		PageSize int64 `form:"pageSize,optional"`
@@ -53,6 +71,24 @@ type (
 		PageSize int64               `json:"pageSize"`
 		HasMore  bool                `json:"hasMore"`
 		List     []RecommendWorkItem `json:"list"`
+	}
+
+	AppWorkDetailResp {
+		WorkId        int64               `json:"workId"`
+		Type          string              `json:"type"`
+		Title         string              `json:"title"`
+		Content       string              `json:"content"`
+		CoverUrl      string              `json:"coverUrl"`
+		DurationMs    int64               `json:"durationMs"`
+		VideoPlaylist string              `json:"videoPlaylist,optional"`
+		PublishedAt   string              `json:"publishedAt"`
+		Author        RecommendAuthorItem `json:"author"`
+		Like          RecommendLikeInfo   `json:"like"`
+		FavoriteCount int64               `json:"favoriteCount"`
+		CommentCount  int64               `json:"commentCount"`
+		ShareCount    int64               `json:"shareCount"`
+		Assets        []AppWorkAssetItem  `json:"assets"`
+		Topics        []AppWorkTopicItem  `json:"topics"`
 	}
 
 	UserPublishedWorkListReq {

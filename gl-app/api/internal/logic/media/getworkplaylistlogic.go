@@ -45,5 +45,5 @@ func (l *GetWorkPlaylistLogic) GetWorkPlaylist(req *types.WorkIdReq) (string, er
 		return "", fmt.Errorf("视频播放清单不存在: %w", err)
 	}
 
-	return buildSignedHLSPlaylist(l.ctx, l.svcCtx, asset.Bucket, asset.ObjectKey)
+	return BuildSignedHLSPlaylist(l.ctx, l.svcCtx, asset.Bucket, asset.ObjectKey)
 }

@@ -21,8 +21,8 @@ const emit = defineEmits(['open', 'open-author'])
       class="note-card__media"
       role="button"
       tabindex="0"
-      @click="!note.isVideo && emit('open', note)"
-      @keydown.enter.prevent="!note.isVideo && emit('open', note)"
+      @click="emit('open', note)"
+      @keydown.enter.prevent="emit('open', note)"
     >
       <img
         :src="note.image"

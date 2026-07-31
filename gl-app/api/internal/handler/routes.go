@@ -34,6 +34,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/users/:userId/works",
 				Handler: app.GetUserPublishedWorkListHandler(serverCtx),
 			},
+			{
+				// 获取App公开作品详情
+				Method:  http.MethodGet,
+				Path:    "/works/:workId",
+				Handler: app.GetAppWorkDetailHandler(serverCtx),
+			},
+			{
+				// 获取App公开视频HLS播放清单
+				Method:  http.MethodGet,
+				Path:    "/works/:workId/playlist",
+				Handler: app.GetAppWorkPlaylistHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/app/v1"),
 	)

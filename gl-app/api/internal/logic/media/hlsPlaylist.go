@@ -15,7 +15,9 @@ import (
 
 const hlsPlaylistContentType = "application/vnd.apple.mpegurl"
 
-func buildSignedHLSPlaylist(ctx context.Context, svcCtx *svc.ServiceContext, bucket, objectKey string) (string, error) {
+// BuildSignedHLSPlaylist 读取HLS清单并将其中的分片地址替换为短期有效的签名地址。
+// App公开播放、创作者预览和审核预览共用这一套清单生成规则。
+func BuildSignedHLSPlaylist(ctx context.Context, svcCtx *svc.ServiceContext, bucket, objectKey string) (string, error) {
 	if bucket == "" || objectKey == "" {
 		return "", fmt.Errorf("视频播放清单不存在")
 	}

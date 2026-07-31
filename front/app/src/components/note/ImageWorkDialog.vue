@@ -5,7 +5,9 @@ import { Button as VanButton, Popup as VanPopup } from 'vant'
 import Avatar from '@/components/Avatar/avatar.vue'
 import AuthorWrapper from '@/components/AuthorWrapper/authWrapper.vue'
 import CommentItem from '@/components/CommentItem/commentItem.vue'
+import HlsVideoPlayer from '@/components/HlsVideoPlayer.vue'
 import LikeAction from '@/components/LikeAction/likeAction.vue'
+import { getAppWorkDetail } from '@/services/workService'
 
 const props = defineProps({
   show: {
@@ -22,22 +24,48 @@ const emit = defineEmits(['update:show', 'login-request', 'open-author'])
 const activeIndex = ref(0)
 const fullscreen = ref(false)
 const imageRatio = ref(0.75)
+const detail = ref(null)
+const loading = ref(false)
+const loadError = ref('')
+let requestVersion = 0
 
+const work = computed(() => {
+  if (detail.value) return detail.value
+  return {
+    id: props.note?.id,
+    type: props.note?.isVideo ? 'video' : 'image',
+    title: props.note?.title || '',
+    content: '',
+    cover: props.note?.image || '',
+    videoPlaylist: '',
+    publishedAt: '',
+    authorId: props.note?.authorId,
+    author: props.note?.author || '咕噜用户',
+    avatar: props.note?.avatar || '',
+    likes: props.note?.likes || 0,
+    favoriteCount: 306,
+    commentCount: 191,
+    shareCount: 26,
+    assets: [],
+    topics: []
+  }
+})
+
+const isVideo = computed(() => work.value.type === 'video')
 const images = computed(() => {
-  if (!props.note?.image) return []
-  return [
-    props.note.image,
-    props.note.image,
-    props.note.image,
-    props.note.image
-  ]
+  const values = work.value.assets
+    ?.filter((asset) => asset.role === 'image' && asset.url)
+    .sort((a, b) => a.sort - b.sort)
+    .map((asset) => asset.url) || []
+  if (values.length) return values
+  return work.value.cover ? [work.value.cover] : []
 })
 const comments = computed(() => [
   {
     id: 1,
     author: {
-      nickname: props.note?.author || '地主页硬笔草书',
-      avatar: props.note?.avatar || '',
+      nickname: work.value.author || '地主页硬笔草书',
+      avatar: work.value.avatar || '',
       isAuthor: true
     },
     content: '莫等闲，白了少年头，空悲切。这里先放一条置顶评论，后续接评论接口即可替换。',
@@ -54,7 +82,7 @@ const comments = computed(() => [
       },
       {
         id: '1-2',
-        author: { nickname: '麦田里的倾听者', avatar: props.note?.avatar || '', isAuthor: true },
+        author: { nickname: '麦田里的倾听者', avatar: work.value.avatar || '', isAuthor: true },
         content: '谢谢喜欢，后面会继续整理。',
         meta: '3小时前 上海',
         likes: 2,
@@ -110,14 +138,26 @@ const comments = computed(() => [
   }
 ])
 
-watch(() => props.note?.id, () => {
+watch([() => props.show, () => props.note?.id], ([show, workId], previous) => {
+  const previousWorkId = previous?.[1]
+  if (workId !== previousWorkId) {
+    detail.value = null
+    loadError.value = ''
+  }
   activeIndex.value = 0
   fullscreen.value = false
-  imageRatio.value = 0.75
+  imageRatio.value = props.note?.isVideo ? 16 / 9 : 0.75
+  if (show && workId) {
+    loadDetail(workId)
+  }
 })
 
 watch(activeIndex, () => {
-  imageRatio.value = 0.75
+  updateRatioFromAsset()
+})
+
+watch(detail, () => {
+  updateRatioFromAsset()
 })
 
 const viewerStyle = computed(() => ({
@@ -147,9 +187,52 @@ function updateImageRatio(event) {
 
 function openAuthor(author) {
   emit('open-author', {
-    authorId: props.note?.authorId || props.note?.id || 'mock',
-    author: author?.nickname || props.note?.author || '咕噜用户',
-    avatar: author?.avatar || props.note?.avatar || ''
+    authorId: work.value.authorId || work.value.id || 'mock',
+    author: author?.nickname || work.value.author || '咕噜用户',
+    avatar: author?.avatar || work.value.avatar || ''
+  })
+}
+
+async function loadDetail(workId) {
+  const currentVersion = ++requestVersion
+  loading.value = true
+  loadError.value = ''
+  try {
+    const data = await getAppWorkDetail(workId)
+    if (currentVersion === requestVersion) {
+      detail.value = data
+    }
+  } catch (error) {
+    if (currentVersion === requestVersion) {
+      loadError.value = error.message || '作品详情加载失败'
+    }
+  } finally {
+    if (currentVersion === requestVersion) {
+      loading.value = false
+    }
+  }
+}
+
+function updateRatioFromAsset() {
+  if (isVideo.value) {
+    const video = work.value.assets?.find((asset) => asset.role === 'video')
+    imageRatio.value = video?.width && video?.height ? video.width / video.height : 16 / 9
+    return
+  }
+  const image = work.value.assets
+    ?.filter((asset) => asset.role === 'image')
+    .sort((a, b) => a.sort - b.sort)[activeIndex.value]
+  imageRatio.value = image?.width && image?.height ? image.width / image.height : 0.75
+}
+
+function formatPublishedAt(value) {
+  if (!value) return '刚刚发布'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
   })
 }
 </script>
@@ -158,6 +241,7 @@ function openAuthor(author) {
   <VanPopup
     :show="props.show"
     class="image-work-popup"
+    :class="{ 'is-video': isVideo }"
     :style="viewerStyle"
     overlay-class="image-work-overlay"
     teleport="body"
@@ -177,54 +261,94 @@ function openAuthor(author) {
         >
           ×
         </button>
-        <span class="image-work__count">{{ activeIndex + 1 }}/{{ images.length }}</span>
-        <button
-          class="image-work__arrow is-left"
-          type="button"
-          aria-label="上一张"
-          @click="prevImage"
+        <div
+          v-if="loading"
+          class="image-work__media-state"
         >
-          ‹
-        </button>
-        <img
-          :src="images[activeIndex]"
-          :alt="note.title"
-          @load="updateImageRatio"
-          @dblclick="fullscreen = true"
-        >
-        <button
-          class="image-work__arrow is-right"
-          type="button"
-          aria-label="下一张"
-          @click="nextImage"
-        >
-          ›
-        </button>
-        <div class="image-work__dots">
-          <button
-            v-for="(_, index) in images"
-            :key="index"
-            type="button"
-            :class="{ active: index === activeIndex }"
-            :aria-label="`切换到第${index + 1}张`"
-            @click="activeIndex = index"
-          />
+          正在加载作品详情...
         </div>
+        <div
+          v-else-if="loadError"
+          class="image-work__media-state"
+        >
+          <span>{{ loadError }}</span>
+          <button
+            type="button"
+            @click="loadDetail(note.id)"
+          >
+            重新加载
+          </button>
+        </div>
+        <HlsVideoPlayer
+          v-else-if="props.show && isVideo"
+          :playlist="work.videoPlaylist"
+          :poster="work.cover"
+        />
+        <template v-else>
+          <span
+            v-if="images.length > 1"
+            class="image-work__count"
+          >{{ activeIndex + 1 }}/{{ images.length }}</span>
+          <button
+            v-if="images.length > 1"
+            class="image-work__arrow is-left"
+            type="button"
+            aria-label="上一张"
+            @click="prevImage"
+          >
+            ‹
+          </button>
+          <img
+            v-if="images.length"
+            :src="images[activeIndex]"
+            :alt="work.title"
+            @load="updateImageRatio"
+            @dblclick="fullscreen = true"
+          >
+          <div
+            v-else
+            class="image-work__media-state"
+          >
+            暂无可展示的图片
+          </div>
+          <button
+            v-if="images.length > 1"
+            class="image-work__arrow is-right"
+            type="button"
+            aria-label="下一张"
+            @click="nextImage"
+          >
+            ›
+          </button>
+          <div
+            v-if="images.length > 1"
+            class="image-work__dots"
+          >
+            <button
+              v-for="(_, index) in images"
+              :key="index"
+              type="button"
+              :class="{ active: index === activeIndex }"
+              :aria-label="`切换到第${index + 1}张`"
+              @click="activeIndex = index"
+            />
+          </div>
+        </template>
       </section>
 
       <aside class="image-work__side">
         <header class="image-work__author">
           <Avatar
-            :avatar-url="note.avatar"
-            :username="note.author"
+            :avatar-url="work.avatar"
+            :username="work.author"
             :size="38"
             interactive
-            @click="openAuthor({ nickname: note.author, avatar: note.avatar })"
+            @click="openAuthor({ nickname: work.author, avatar: work.avatar })"
           />
           <AuthorWrapper
             class="image-work__author-name"
-            :nickname="note.author"
-            @click="openAuthor({ nickname: note.author, avatar: note.avatar })"
+            :nickname="work.author"
+            @click="openAuthor({ nickname: work.author, avatar: work.avatar })"
           />
           <VanButton
             type="primary"
@@ -237,18 +361,21 @@ function openAuthor(author) {
         </header>
 
         <section class="image-work__content">
-          <h2>{{ note.title }}</h2>
-          <p>
-            什么样的内容会让人停下来认真看？先把作品详情和评论交互样式搭好，后续接接口时替换真实正文即可。
+          <h2>{{ work.title }}</h2>
+          <p v-if="work.content">
+            {{ work.content }}
           </p>
-          <div class="image-work__topics">
-            <span>#硬笔书法</span>
-            <span>#笔记</span>
-            <span>#生活记录</span>
-            <span>#灵感收藏</span>
+          <div
+            v-if="work.topics?.length"
+            class="image-work__topics"
+          >
+            <span
+              v-for="topic in work.topics"
+              :key="topic.topicId"
+            >#{{ topic.name }}</span>
           </div>
           <div class="image-work__meta">
-            编辑于 5天前 辽宁
+            发布于 {{ formatPublishedAt(work.publishedAt) }}
             <button type="button">
               ···
             </button>
@@ -257,7 +384,7 @@ function openAuthor(author) {
 
         <section class="image-work__comments">
           <p class="image-work__comment-count">
-            共 191 条评论
+            共 {{ work.commentCount }} 条评论
           </p>
           <CommentItem
             v-for="comment in comments"
@@ -274,14 +401,14 @@ function openAuthor(author) {
           </button>
           <span>
             <LikeAction
-              :count="note.likes"
+              :count="work.likes"
               label="点赞作品"
               icon-size="21"
             />
           </span>
-          <span>☆ 306</span>
-          <span>💬 191</span>
-          <span>↗</span>
+          <span>☆ {{ work.favoriteCount }}</span>
+          <span>💬 {{ work.commentCount }}</span>
+          <span>↗ {{ work.shareCount }}</span>
         </footer>
       </aside>
     </article>
@@ -310,7 +437,7 @@ function openAuthor(author) {
     </button>
     <img
       :src="images[activeIndex]"
-      :alt="note?.title"
+      :alt="work.title"
     >
     <button
       class="image-fullscreen__arrow is-right"
@@ -353,6 +480,10 @@ function openAuthor(author) {
   background: #efece3;
 }
 
+.image-work-popup.is-video .image-work__viewer {
+  background: #000;
+}
+
 .image-work__viewer img {
   position: absolute;
   inset: 0;
@@ -360,6 +491,34 @@ function openAuthor(author) {
   height: 100%;
   object-fit: contain;
   cursor: zoom-in;
+}
+
+.image-work__media-state {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #6f747d;
+  font-size: 14px;
+  text-align: center;
+}
+
+.image-work__media-state button {
+  height: 34px;
+  border-radius: 999px;
+  color: #fff;
+  background: #3c4048;
+  padding: 0 16px;
+}
+
+.image-work-popup.is-video .image-work__media-state {
+  color: #fff;
+}
+
+.image-work-popup.is-video .image-work__media-state button {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .image-work__close,

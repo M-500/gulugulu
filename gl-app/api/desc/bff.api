@@ -80,6 +80,14 @@ service gulu {
 	@doc "分页获取用户已发布的公开作品"
 	@handler getUserPublishedWorkList
 	get /users/:userId/works (UserPublishedWorkListReq) returns (UserPublishedWorkListResp)
+
+	@doc "获取App公开作品详情"
+	@handler getAppWorkDetail
+	get /works/:workId (AppWorkDetailReq) returns (AppWorkDetailResp)
+
+	@doc "获取App公开视频HLS播放清单"
+	@handler getAppWorkPlaylist
+	get /works/:workId/playlist (AppWorkDetailReq)
 }
 
 // Need login
