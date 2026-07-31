@@ -45,6 +45,8 @@ type (
 		CreatedAt      time.Time `db:"created_at"`      // 创建时间
 		Name           string    `db:"name"`            // 话题展示名称
 		NormalizedName string    `db:"normalized_name"` // 用于去重检索的标准化话题名称
+		ViewNum        int64     `db:"view_num"`        // 话题浏览量
+		CommentNum     int64     `db:"comment_num"`     // 话题讨论度
 	}
 )
 
@@ -111,8 +113,8 @@ func (m *defaultTopicModel) Insert(ctx context.Context, data *Topic) (sql.Result
 	topicIdKey := fmt.Sprintf("%s%v", cacheTopicIdPrefix, data.Id)
 	topicNormalizedNameKey := fmt.Sprintf("%s%v", cacheTopicNormalizedNamePrefix, data.NormalizedName)
 	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?)", m.table, topicRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.Name, data.NormalizedName)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?)", m.table, topicRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Name, data.NormalizedName, data.ViewNum, data.CommentNum)
 	}, topicIdKey, topicNormalizedNameKey)
 	return ret, err
 }
@@ -127,7 +129,7 @@ func (m *defaultTopicModel) Update(ctx context.Context, newData *Topic) error {
 	topicNormalizedNameKey := fmt.Sprintf("%s%v", cacheTopicNormalizedNamePrefix, data.NormalizedName)
 	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, topicRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, newData.Name, newData.NormalizedName, newData.Id)
+		return conn.ExecCtx(ctx, query, newData.Name, newData.NormalizedName, newData.ViewNum, newData.CommentNum, newData.Id)
 	}, topicIdKey, topicNormalizedNameKey)
 	return err
 }

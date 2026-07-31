@@ -57,6 +57,8 @@ CREATE TABLE `topic` (
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `name` varchar(64) NOT NULL COMMENT '话题展示名称',
   `normalized_name` varchar(64) NOT NULL COMMENT '用于去重检索的标准化话题名称',
+  `view_num` bigint unsigned NOT NULL default 0 COMMENT '话题浏览量',
+  `comment_num` bigint unsigned NOT NULL default 0 COMMENT '话题讨论度',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_normalized_name` (`normalized_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='话题';
