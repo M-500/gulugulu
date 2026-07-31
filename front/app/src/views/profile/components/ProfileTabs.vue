@@ -5,6 +5,10 @@ defineProps({
   modelValue: {
     type: String,
     default: 'notes'
+  },
+  workCount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -21,7 +25,7 @@ defineEmits(['update:modelValue'])
     >
       <VanTab
         name="notes"
-        title="笔记"
+        :title="`作品 · ${workCount}`"
       />
       <VanTab
         name="collections"

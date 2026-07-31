@@ -15,7 +15,7 @@ export async function getHomeFeed({ page = 1, pageSize = 20 } = {}) {
   }
 }
 
-function mapRecommendWorkToNote(item) {
+export function mapRecommendWorkToNote(item) {
   const authorName = item.author?.nickName || '咕噜用户'
   return {
     id: item.workId,

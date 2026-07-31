@@ -37,8 +37,8 @@ const items = computed(() => primaryNavItems.filter((item) => item.key !== 'prof
     >
       <Avatar
         :avatar-url="authStore.user?.avatarUrl"
-        username="我"
-        size="24"
+        :username="authStore.user?.nickName || '我'"
+        :size="24"
       />
     </RouterLink>
     <button

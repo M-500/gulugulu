@@ -218,6 +218,7 @@ function openAuthor(author) {
             :avatar-url="note.avatar"
             :username="note.author"
             :size="38"
+            interactive
             @click="openAuthor({ nickname: note.author, avatar: note.avatar })"
           />
           <AuthorWrapper
@@ -339,12 +340,13 @@ function openAuthor(author) {
   display: grid;
   height: 100%;
   width: 100%;
-  grid-template-columns: minmax(320px, 1fr) var(--detail-side-width);
+  grid-template-columns: minmax(0, var(--detail-viewer-width)) minmax(0, var(--detail-side-width));
 }
 
 .image-work__viewer {
   position: relative;
   display: grid;
+  width: var(--detail-viewer-width);
   min-width: 0;
   place-items: center;
   overflow: hidden;
@@ -352,6 +354,8 @@ function openAuthor(author) {
 }
 
 .image-work__viewer img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -434,6 +438,7 @@ function openAuthor(author) {
 .image-work__side {
   display: flex;
   min-width: 0;
+  overflow: hidden;
   flex-direction: column;
   background: #fff;
 }
@@ -503,6 +508,7 @@ function openAuthor(author) {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 14px 22px 84px;
 }
 
@@ -583,6 +589,10 @@ function openAuthor(author) {
 
   .image-work__side {
     min-height: 0;
+  }
+
+  .image-work__viewer {
+    width: 100%;
   }
 
   .image-work__close {

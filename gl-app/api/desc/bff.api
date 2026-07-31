@@ -72,6 +72,14 @@ service gulu {
 	@doc "App首页推荐作品列表"
 	@handler getRecommendWorkList
 	get /recommend/works (RecommendWorkListReq) returns (RecommendWorkListResp)
+
+	@doc "获取App用户公开资料"
+	@handler getAppUserProfile
+	get /users/:userId (AppUserProfileReq) returns (AppUserProfileResp)
+
+	@doc "分页获取用户已发布的公开作品"
+	@handler getUserPublishedWorkList
+	get /users/:userId/works (UserPublishedWorkListReq) returns (UserPublishedWorkListResp)
 }
 
 // Need login

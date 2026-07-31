@@ -2,11 +2,13 @@
 <template>
   <span
     class="avatar"
+    :class="{ 'avatar--interactive': interactive }"
     :style="avatarStyle"
-    role="button"
-    tabindex="0"
-    @click="$emit('click')"
-    @keydown.enter.prevent="$emit('click')"
+    :role="interactive ? 'button' : undefined"
+    :tabindex="interactive ? 0 : undefined"
+    @click="handleClick"
+    @keydown.enter.prevent="handleClick"
+    @keydown.space.prevent="handleClick"
   >
     <img
       v-if="avatarUrl"
@@ -32,13 +34,20 @@ const props = defineProps({
   size: {
     type: [Number, String],
     default: 20
+  },
+  interactive: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['click'])
+const emit = defineEmits(['click'])
 
 const normalizedSize = computed(() => {
-  return typeof props.size === 'number' ? `${props.size}px` : props.size
+  if (typeof props.size === 'number') return `${props.size}px`
+
+  const size = String(props.size).trim()
+  return /^\d+(\.\d+)?$/.test(size) ? `${size}px` : size
 })
 
 const avatarStyle = computed(() => ({
@@ -50,6 +59,10 @@ const avatarStyle = computed(() => ({
 const initial = computed(() => {
   return String(props.username || '咕').trim().slice(0, 1).toUpperCase()
 })
+
+function handleClick () {
+  if (props.interactive) emit('click')
+}
 </script>
 
 <style scoped>
@@ -65,6 +78,10 @@ const initial = computed(() => {
   font-weight: 800;
   line-height: 1;
   background: #2e3036;
+  user-select: none;
+}
+
+.avatar--interactive {
   cursor: pointer;
 }
 

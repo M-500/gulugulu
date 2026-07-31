@@ -9,6 +9,16 @@ info (
 )
 
 type (
+	AppUserProfileReq {
+		UserId int64 `path:"userId"`
+	}
+
+	AppUserProfileResp {
+		UserId    int64  `json:"userId"`
+		NickName  string `json:"nickName"`
+		AvatarUrl string `json:"avatarUrl,optional"`
+	}
+
 	RecommendWorkListReq {
 		Page     int64 `form:"page,optional"`
 		PageSize int64 `form:"pageSize,optional"`
@@ -39,6 +49,20 @@ type (
 	}
 
 	RecommendWorkListResp {
+		Page     int64               `json:"page"`
+		PageSize int64               `json:"pageSize"`
+		HasMore  bool                `json:"hasMore"`
+		List     []RecommendWorkItem `json:"list"`
+	}
+
+	UserPublishedWorkListReq {
+		UserId   int64 `path:"userId"`
+		Page     int64 `form:"page,optional"`
+		PageSize int64 `form:"pageSize,optional"`
+	}
+
+	UserPublishedWorkListResp {
+		Total    int64               `json:"total"`
 		Page     int64               `json:"page"`
 		PageSize int64               `json:"pageSize"`
 		HasMore  bool                `json:"hasMore"`

@@ -1,6 +1,8 @@
 <script setup>
 import { Button as VanButton } from 'vant'
 
+import Avatar from '@/components/Avatar/avatar.vue'
+
 defineProps({
   user: {
     type: Object,
@@ -11,17 +13,18 @@ defineProps({
 
 <template>
   <section class="profile-header">
-    <img
+    <Avatar
       class="profile-header__avatar"
-      :src="user.avatar"
-      :alt="user.nickname"
-    >
+      :avatar-url="user.avatar"
+      :username="user.nickname"
+      size="var(--profile-avatar-size)"
+    />
     <div class="profile-header__info">
       <div class="profile-header__top">
         <div>
           <h1>{{ user.nickname }}</h1>
           <p>
-            小红书号：{{ user.redId }} ｜ IP属地：{{ user.location }}
+            咕噜号：{{ user.redId }} ｜ IP属地：{{ user.location }}
           </p>
         </div>
         <div class="profile-header__actions">
@@ -48,7 +51,7 @@ defineProps({
       <p class="profile-header__bio">
         {{ user.bio }}
       </p>
-      <span class="profile-header__gender">♀</span>
+      <span class="profile-header__region">{{ user.region }}</span>
       <div class="profile-header__stats">
         <span><strong>{{ user.following }}</strong> 关注</span>
         <span><strong>{{ user.followers }}</strong> 粉丝</span>
@@ -60,6 +63,7 @@ defineProps({
 
 <style scoped>
 .profile-header {
+  --profile-avatar-size: 176px;
   display: grid;
   grid-template-columns: 180px minmax(0, 560px);
   justify-content: center;
@@ -68,10 +72,7 @@ defineProps({
 }
 
 .profile-header__avatar {
-  width: 176px;
-  height: 176px;
-  border-radius: 50%;
-  object-fit: cover;
+  font-size: 48px;
 }
 
 .profile-header__top {
@@ -118,21 +119,21 @@ defineProps({
   line-height: 1.6;
 }
 
-.profile-header__gender {
-  display: inline-grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 50%;
-  color: #ff6d8d;
-  background: #fff2f5;
-  font-size: 13px;
+.profile-header__region {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border-radius: 999px;
+  color: #969aa2;
+  background: #f6f7f8;
+  font-size: 12px;
+  padding: 0 11px;
 }
 
 .profile-header__stats {
   display: flex;
   gap: 22px;
-  margin-top: 24px;
+  margin-top: 28px;
   color: #6f747d;
   font-size: 14px;
 }
@@ -143,14 +144,14 @@ defineProps({
 
 @media (max-width: 900px) {
   .profile-header {
+    --profile-avatar-size: 88px;
     grid-template-columns: 88px minmax(0, 1fr);
     gap: 18px;
     padding: 24px 14px 28px;
   }
 
   .profile-header__avatar {
-    width: 88px;
-    height: 88px;
+    font-size: 28px;
   }
 
   .profile-header__top {

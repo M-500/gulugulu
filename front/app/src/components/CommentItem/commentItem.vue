@@ -4,6 +4,7 @@
       :avatar-url="comment.author?.avatar"
       :username="comment.author?.nickname || comment.author?.username"
       :size="avatarSize"
+      interactive
       @click="$emit('open-author', comment)"
     />
     <div class="comment-item__body">

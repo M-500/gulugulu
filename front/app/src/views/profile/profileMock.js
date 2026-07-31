@@ -6,10 +6,23 @@ export const profileUser = {
   avatar: image(64, 240, 240),
   redId: '63698788670',
   location: '浙江',
+  region: '浙江杭州',
   bio: '不一样的穿搭风格\n闲情雅致😋\n2589330358@qq.com',
   following: 0,
   followers: 297,
   receives: 2863
+}
+
+// 后端暂未提供简介和互动统计，保留页面原有 mock，只用接口数据覆盖用户身份信息。
+export function withProfileMock(user = {}) {
+  return {
+    ...profileUser,
+    ...user,
+    userId: user.userId || profileUser.userId,
+    redId: String(user.userId || profileUser.redId),
+    nickname: user.nickname || profileUser.nickname,
+    avatar: user.avatar !== undefined ? user.avatar : profileUser.avatar
+  }
 }
 
 export const profileNotes = [

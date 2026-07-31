@@ -47,7 +47,7 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
       <button
         v-if="!authStore.isLoggedIn"
         type="button"
-        class="sidebar-link sidebar-login"
+        class="sidebar-link sidebar-auth-entry sidebar-auth-entry--login"
         @click="emit('login-request')"
       >
         <span class="sidebar-icon">
@@ -60,17 +60,17 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
       </button>
       <RouterLink
         v-else
-        class="sidebar-link"
+        class="sidebar-link sidebar-auth-entry sidebar-auth-entry--profile"
         :to="`/users/${authStore.user?.userId || 'me'}`"
       >
-        <span class="sidebar-icon">
+        <span class="sidebar-icon sidebar-profile-avatar">
           <Avatar
             :avatar-url="authStore.user?.avatarUrl"
-            username="我"
-            size="24"
+            :username="authStore.user?.nickName || '我'"
+            :size="24"
           />
         </span>
-        <span>我</span>
+        <span class="sidebar-auth-entry__label">我</span>
       </RouterLink>
     </nav>
 
@@ -149,11 +149,26 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-.sidebar-login {
+.sidebar-auth-entry {
+  width: 100%;
+}
+
+.sidebar-auth-entry--login {
   border: 0;
   background: transparent;
   font: inherit;
+  text-align: left;
   cursor: pointer;
+}
+
+.sidebar-auth-entry--profile {
+  overflow: hidden;
+}
+
+.sidebar-auth-entry__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-link:hover,
@@ -163,9 +178,18 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
 
 .sidebar-icon {
   display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   align-items: center;
   justify-content: center;
   color: #383a40;
+}
+
+.sidebar-profile-avatar {
+  overflow: hidden;
+  border: 1px solid #eceef2;
+  border-radius: 50%;
 }
 
 .sidebar-badge {
