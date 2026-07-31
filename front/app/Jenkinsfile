@@ -1,0 +1,132 @@
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    parameters {
+        string(name: 'REGISTRY', defaultValue: 'registry.example.com', description: 'Docker 镜像仓库地址，不要填写 http/https 协议')
+        string(name: 'IMAGE_NAMESPACE', defaultValue: 'gulugulu', description: '镜像仓库命名空间')
+        string(name: 'REGISTRY_CREDENTIALS_ID', defaultValue: 'docker-registry-credentials', description: 'Jenkins 用户名密码凭据 ID')
+        string(name: 'NODE_IMAGE', defaultValue: 'node:20-alpine', description: 'Node 构建基础镜像，可替换为公司镜像代理地址')
+        string(name: 'NGINX_IMAGE', defaultValue: 'nginx:1.27-alpine', description: 'Nginx 运行基础镜像，可替换为公司镜像代理地址')
+        string(name: 'PUBLIC_API_BASE_URL', defaultValue: '', description: '前端构建期 API 地址；留空时使用同域 Nginx 反向代理')
+        booleanParam(name: 'PUSH_LATEST', defaultValue: true, description: '同时推送 latest 标签')
+        booleanParam(name: 'DEPLOY', defaultValue: false, description: '构建推送成功后在当前 Jenkins 节点部署')
+        string(name: 'HOST_PORT', defaultValue: '8080', description: '部署时映射到宿主机的端口')
+        string(name: 'DOCKER_NETWORK', defaultValue: 'gulugulu', description: '三个服务共同使用的 Docker 网络')
+        string(name: 'API_UPSTREAM', defaultValue: 'http://gulugulu-api:8888', description: 'Nginx 转发到后端 API 的容器内地址')
+        string(name: 'MINIO_UPSTREAM', defaultValue: 'http://minio:9000', description: 'Nginx 转发到 MinIO 的容器内地址')
+    }
+
+    environment {
+        CONTAINER_NAME = 'gulugulu-app'
+        TEST_IMAGE = "gulugulu-app-test:${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('检出代码') {
+            steps {
+                checkout scm
+                script {
+                    def commit = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
+                    def branch = (env.BRANCH_NAME ?: 'detached').replaceAll(/[^A-Za-z0-9_.-]/, '-')
+                    env.GIT_COMMIT_SHORT = commit
+                    env.IMAGE_TAG = "${branch}-${env.BUILD_NUMBER}-${commit}"
+                    env.IMAGE_REPO = "${params.REGISTRY}/${params.IMAGE_NAMESPACE}/gulugulu-app"
+                    env.IMAGE_REF = "${env.IMAGE_REPO}:${env.IMAGE_TAG}"
+                    env.LATEST_REF = "${env.IMAGE_REPO}:latest"
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('代码检查') {
+            steps {
+                sh '''
+                    docker build --target test \
+                      --build-arg "NODE_IMAGE=$NODE_IMAGE" \
+                      --build-arg "NGINX_IMAGE=$NGINX_IMAGE" \
+                      --tag "$TEST_IMAGE" \
+                      --file front/app/Dockerfile front/app
+                '''
+            }
+        }
+
+        stage('构建镜像') {
+            steps {
+                sh '''
+                    docker build \
+                      --build-arg "NODE_IMAGE=$NODE_IMAGE" \
+                      --build-arg "NGINX_IMAGE=$NGINX_IMAGE" \
+                      --build-arg VITE_API_BASE_URL="$PUBLIC_API_BASE_URL" \
+                      --label "org.opencontainers.image.revision=$GIT_COMMIT_SHORT" \
+                      --tag "$IMAGE_REF" \
+                      --file front/app/Dockerfile front/app
+                '''
+            }
+        }
+
+        stage('推送镜像') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: params.REGISTRY_CREDENTIALS_ID,
+                    usernameVariable: 'REGISTRY_USERNAME',
+                    passwordVariable: 'REGISTRY_PASSWORD'
+                )]) {
+                    sh '''
+                        trap 'docker logout "$REGISTRY" >/dev/null 2>&1 || true' EXIT
+                        printf '%s' "$REGISTRY_PASSWORD" | docker login "$REGISTRY" \
+                          --username "$REGISTRY_USERNAME" --password-stdin
+                        docker push "$IMAGE_REF"
+                        if [ "$PUSH_LATEST" = "true" ]; then
+                          docker tag "$IMAGE_REF" "$LATEST_REF"
+                          docker push "$LATEST_REF"
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('部署 App') {
+            when {
+                expression { params.DEPLOY }
+            }
+            steps {
+                sh '''
+                    docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 || docker network create "$DOCKER_NETWORK"
+                    docker pull "$IMAGE_REF"
+                    docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1 || true
+                    docker run --detach \
+                      --name "$CONTAINER_NAME" \
+                      --restart unless-stopped \
+                      --network "$DOCKER_NETWORK" \
+                      --publish "$HOST_PORT:80" \
+                      --env "API_UPSTREAM=$API_UPSTREAM" \
+                      --env "MINIO_UPSTREAM=$MINIO_UPSTREAM" \
+                      "$IMAGE_REF"
+
+                    for attempt in $(seq 1 12); do
+                      status=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null || true)
+                      [ "$status" = "healthy" ] && exit 0
+                      [ "$status" = "unhealthy" ] && break
+                      sleep 5
+                    done
+                    docker logs --tail 100 "$CONTAINER_NAME" || true
+                    exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker image rm --force "$TEST_IMAGE" >/dev/null 2>&1 || true'
+            deleteDir()
+        }
+    }
+}

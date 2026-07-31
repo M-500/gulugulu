@@ -1,0 +1,14 @@
+.git
+.gitignore
+.idea
+.vscode
+.gocache
+.gomodcache
+api/.gomodcache
+deploy/data
+deploy/config
+Dockerfile*
+Jenkinsfile*
+*.log
+gulu-api
+
