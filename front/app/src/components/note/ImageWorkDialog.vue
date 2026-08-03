@@ -371,7 +371,7 @@ function formatPublishedAt(value) {
           <Avatar
             :avatar-url="work.avatar"
             :username="work.author"
-            :size="38"
+            :size="40"
             interactive
             @click="openAuthor({ nickname: work.author, avatar: work.avatar })"
           />
@@ -381,6 +381,7 @@ function formatPublishedAt(value) {
             @click="openAuthor({ nickname: work.author, avatar: work.avatar })"
           />
           <VanButton
+            class="image-work__follow"
             type="primary"
             round
             size="small"
@@ -634,10 +635,14 @@ function formatPublishedAt(value) {
 
 .image-work__author {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: 38px minmax(0, 1fr) 96px;
   align-items: center;
   gap: 12px;
   padding: 24px 22px 16px;
+}
+
+.image-work__follow {
+  width: 100%;
 }
 
 .image-work__author-name {
