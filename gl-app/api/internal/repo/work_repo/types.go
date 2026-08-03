@@ -7,50 +7,45 @@ import (
 )
 
 type Work struct {
-	ID                int64          `gorm:"column:id;primaryKey;autoIncrement"`
-	CreatedAt         time.Time      `gorm:"column:created_at"`
-	UpdatedAt         time.Time      `gorm:"column:updated_at"`
-	DeletedAt         gorm.DeletedAt `gorm:"column:deleted_at"`
-	UserID            int64          `gorm:"column:user_id"`
-	Type              string         `gorm:"column:type"`
-	Title             string         `gorm:"column:title"`
-	Content           string         `gorm:"column:content"`
-	Visibility        string         `gorm:"column:visibility"`
-	VisibilityUserIDs *string        `gorm:"column:visibility_user_ids;type:json"`
-	CollectionID      int64          `gorm:"column:collection_id"`
-	Original          bool           `gorm:"column:original"`
-	CoverAssetID      int64          `gorm:"column:cover_asset_id"`
-	ProcessStatus     string         `gorm:"column:process_status"`
-	ReviewStatus      string         `gorm:"column:review_status"`
-	PublishStatus     string         `gorm:"column:publish_status"`
-	ScheduledAt       *time.Time     `gorm:"column:scheduled_at"`
-	PublishedAt       *time.Time     `gorm:"column:published_at"`
-	ReviewedBy        int64          `gorm:"column:reviewed_by"`
-	ReviewedAt        *time.Time     `gorm:"column:reviewed_at"`
-	ReviewReason      string         `gorm:"column:review_reason"`
-	IdempotencyKey    string         `gorm:"column:idempotency_key"`
+	gorm.Model
+	UserID            int64      `gorm:"column:user_id;type:bigint;not null;comment:用户ID"`
+	Type              string     `gorm:"column:type;type:varchar(32);not null;comment:作品类型"`
+	Title             string     `gorm:"column:title;type:varchar(256);not null;comment:作品标题"`
+	Content           string     `gorm:"column:content;type:text;comment:作品内容"`
+	Visibility        string     `gorm:"column:visibility;type:varchar(32);not null;comment:可见性"`
+	VisibilityUserIDs *string    `gorm:"column:visibility_user_ids;type:json;comment:可见用户ID列表"`
+	CollectionID      int64      `gorm:"column:collection_id;type:bigint;comment:收藏夹ID"`
+	Original          bool       `gorm:"column:original;type:tinyint;comment:是否原创"`
+	CoverAssetID      int64      `gorm:"column:cover_asset_id;type:bigint;comment:封面素材ID"`
+	ProcessStatus     string     `gorm:"column:process_status;type:varchar(32);comment:处理状态"`
+	ReviewStatus      string     `gorm:"column:review_status;type:varchar(32);comment:审核状态"`
+	PublishStatus     string     `gorm:"column:publish_status;type:varchar(32);comment:发布状态"`
+	ScheduledAt       *time.Time `gorm:"column:scheduled_at;type:datetime;comment:定时发布时间"`
+	PublishedAt       *time.Time `gorm:"column:published_at;type:datetime;comment:发布时间"`
+	ReviewedBy        int64      `gorm:"column:reviewed_by;type:bigint;comment:审核人ID"`
+	ReviewedAt        *time.Time `gorm:"column:reviewed_at;type:datetime;comment:审核时间"`
+	ReviewReason      string     `gorm:"column:review_reason;type:varchar(256);comment:审核原因"`
+	IdempotencyKey    string     `gorm:"column:idempotency_key;type:varchar(256);comment:幂等性Key"`
 }
 
 func (Work) TableName() string { return "work" }
 
 type WorkAsset struct {
-	ID           int64     `gorm:"column:id;primaryKey;autoIncrement"`
-	CreatedAt    time.Time `gorm:"column:created_at"`
-	WorkID       int64     `gorm:"column:work_id"`
-	MediaAssetID int64     `gorm:"column:media_asset_id"`
-	Role         string    `gorm:"column:role"`
-	Sort         int64     `gorm:"column:sort"`
+	gorm.Model
+	WorkID       int64  `gorm:"column:work_id;type:bigint;not null;comment:作品ID"`
+	MediaAssetID int64  `gorm:"column:media_asset_id;type:bigint;comment:素材ID"`
+	Role         string `gorm:"column:role;type:varchar(32);comment:角色"`
+	Sort         int64  `gorm:"column:sort;type:bigint;comment:排序"`
 }
 
 func (WorkAsset) TableName() string { return "work_asset" }
 
 type Topic struct {
-	ID             int64     `gorm:"column:id;primaryKey;autoIncrement"`
-	CreatedAt      time.Time `gorm:"column:created_at"`
-	Name           string    `gorm:"column:name"`
-	NormalizedName string    `gorm:"column:normalized_name"`
-	ViewNum        int64     `gorm:"column:view_num"`
-	CommentNum     int64     `gorm:"column:comment_num"`
+	gorm.Model
+	Name           string `gorm:"column:name;type:varchar(256);not null;comment:话题名称"`
+	NormalizedName string `gorm:"column:normalized_name;type:varchar(256);not null;comment:规范化话题名称"`
+	ViewNum        int64  `gorm:"column:view_num;type:bigint;default:0;comment:浏览数"`
+	CommentNum     int64  `gorm:"column:comment_num;type:bigint;default:0;comment:评论数"`
 }
 
 func (Topic) TableName() string { return "topic" }
