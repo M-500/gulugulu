@@ -8,14 +8,14 @@ import (
 	"path"
 	"strings"
 
-	"gl-app/api/internal/models/user"
+	userrepo "gl-app/api/internal/repo/user_repo"
 	"gl-app/api/internal/svc"
 )
 
 // findAppPublicUser 查询公开主页需要的用户记录，并统一屏蔽已删除用户。
-func findAppPublicUser(ctx context.Context, svcCtx *svc.ServiceContext, userID int64) (*user.User, error) {
-	userInfo, err := svcCtx.UserRepo.FindOne(ctx, userID)
-	if errors.Is(err, user.ErrNotFound) || (err == nil && userInfo.DeletedAt.Valid) {
+func findAppPublicUser(ctx context.Context, svcCtx *svc.ServiceContext, userID int64) (*userrepo.User, error) {
+	userInfo, err := svcCtx.UserRepo.FindOneByID(ctx, userID)
+	if errors.Is(err, userrepo.ErrNotFound) {
 		return nil, fmt.Errorf("用户不存在")
 	}
 	if err != nil {

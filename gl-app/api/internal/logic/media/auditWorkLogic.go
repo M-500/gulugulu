@@ -2,11 +2,11 @@ package media
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
+	workrepo "gl-app/api/internal/repo/work_repo"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
@@ -22,16 +22,12 @@ type AuditWorkLogic struct {
 
 // 审核作品
 func NewAuditWorkLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AuditWorkLogic {
-	return &AuditWorkLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+	return &AuditWorkLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
 
-func (l *AuditWorkLogic) AuditWork(req *types.AuditWorkReq) (resp *types.AuditWorkResp, err error) {
+func (l *AuditWorkLogic) AuditWork(req *types.AuditWorkReq) (*types.AuditWorkResp, error) {
 	reviewerID := ctxdata.GetUidFromCtx(l.ctx)
-	if err = ensureAuditPermission(l.svcCtx, reviewerID); err != nil {
+	if err := ensureAuditPermission(l.svcCtx, reviewerID); err != nil {
 		return nil, err
 	}
 	decision := strings.ToLower(strings.TrimSpace(req.Decision))
@@ -41,43 +37,35 @@ func (l *AuditWorkLogic) AuditWork(req *types.AuditWorkReq) (resp *types.AuditWo
 	if decision == "reject" && strings.TrimSpace(req.Reason) == "" {
 		return nil, fmt.Errorf("审核拒绝必须填写原因")
 	}
-
-	var row struct {
-		ProcessStatus string       `db:"process_status"`
-		ReviewStatus  string       `db:"review_status"`
-		ScheduledAt   sql.NullTime `db:"scheduled_at"`
-	}
-	if err = l.svcCtx.SqlConn.QueryRowCtx(l.ctx, &row,
-		"SELECT process_status,review_status,scheduled_at FROM work WHERE id=? AND deleted_at IS NULL",
-		req.WorkId); err != nil {
+	state, err := l.svcCtx.WorkRepo.FindAuditState(l.ctx, req.WorkId)
+	if err != nil {
 		return nil, fmt.Errorf("作品不存在: %w", err)
 	}
-	if row.ProcessStatus != "succeeded" || row.ReviewStatus != "pending_review" {
+	if state.ProcessStatus != "succeeded" || state.ReviewStatus != "pending_review" {
 		return nil, fmt.Errorf("作品当前状态不可审核")
 	}
 
-	reviewStatus := "rejected"
-	publishStatus := "pending"
-	var publishedAt any
+	reviewStatus, publishStatus := "rejected", "pending"
+	var publishedAt *time.Time
 	if decision == "approve" {
 		reviewStatus = "approved"
-		if row.ScheduledAt.Valid && row.ScheduledAt.Time.After(time.Now()) {
+		if state.ScheduledAt != nil && state.ScheduledAt.After(time.Now()) {
 			publishStatus = "scheduled"
 		} else {
 			publishStatus = "published"
-			publishedAt = time.Now().UTC()
+			now := time.Now().UTC()
+			publishedAt = &now
 		}
 	}
-	result, err := l.svcCtx.SqlConn.ExecCtx(l.ctx, `UPDATE work SET review_status=?,publish_status=?,reviewed_by=?,
-		reviewed_at=NOW(3),review_reason=?,published_at=? WHERE id=? AND review_status='pending_review'`,
-		reviewStatus, publishStatus, reviewerID, strings.TrimSpace(req.Reason), publishedAt, req.WorkId)
+	updated, err := l.svcCtx.WorkRepo.Review(l.ctx, workrepo.ReviewInput{
+		WorkID: req.WorkId, ReviewerID: reviewerID, ReviewStatus: reviewStatus,
+		PublishStatus: publishStatus, Reason: strings.TrimSpace(req.Reason), PublishedAt: publishedAt,
+	})
 	if err != nil {
 		return nil, err
 	}
-	affected, _ := result.RowsAffected()
-	if affected != 1 {
+	if !updated {
 		return nil, fmt.Errorf("作品已被其他审核员处理")
 	}
-
 	return &types.AuditWorkResp{WorkId: req.WorkId, ReviewStatus: reviewStatus, PublishStatus: publishStatus}, nil
 }

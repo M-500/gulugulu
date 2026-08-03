@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
-	mediaModel "gl-app/api/internal/models/media"
+	mediarepo "gl-app/api/internal/repo/media_repo"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
@@ -92,8 +92,8 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 		return nil, l.logAndReturn("生成预览地址失败", fmt.Errorf("调用MinIO生成GET预签名失败: %w", err))
 	}
 
-	result, err := l.svcCtx.MediaAssetRepo.Insert(l.ctx, &mediaModel.MediaAsset{
-		UserId:       userId,
+	asset := &mediarepo.MediaAsset{
+		UserID:       userId,
 		ResourceType: resourceType,
 		Bucket:       bucket,
 		ObjectKey:    objectKey,
@@ -101,18 +101,14 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 		ContentType:  contentType,
 		Ext:          strings.TrimPrefix(ext, "."),
 		Status:       "uploading",
-	})
+	}
+	err = l.svcCtx.MediaRepo.CreateAsset(l.ctx, asset)
 	if err != nil {
 		return nil, l.logAndReturn("创建媒体素材记录失败", fmt.Errorf("写入媒体素材记录失败: %w", err))
 	}
 
-	mediaId, err := result.LastInsertId()
-	if err != nil {
-		return nil, l.logAndReturn("获取媒体素材ID失败", fmt.Errorf("读取媒体素材自增ID失败: %w", err))
-	}
-
 	return &types.CreateUploadPresignResp{
-		MediaId:    mediaId,
+		MediaId:    asset.ID,
 		Bucket:     bucket,
 		ObjectKey:  objectKey,
 		UploadUrl:  uploadUrl.String(),

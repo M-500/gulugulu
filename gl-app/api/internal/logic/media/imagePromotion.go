@@ -7,22 +7,12 @@ import (
 	"strings"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	mediarepo "gl-app/api/internal/repo/media_repo"
 	"gl-app/api/internal/svc"
 )
 
-type imagePromotionAsset struct {
-	ID              int64  `db:"id"`
-	Role            string `db:"role"`
-	Bucket          string `db:"bucket"`
-	ObjectKey       string `db:"object_key"`
-	OriginName      string `db:"origin_name"`
-	Status          string `db:"status"`
-	FormalObjectKey string `db:"formal_object_key"`
-}
-
 type promotedImage struct {
-	imagePromotionAsset
+	mediarepo.ProcessAsset
 	targetObjectKey string
 }
 
@@ -32,18 +22,12 @@ func promoteImageWork(ctx context.Context, svcCtx *svc.ServiceContext, workID in
 	if err := ensureFormalMediaBucket(ctx, svcCtx); err != nil {
 		return err
 	}
-	_, _ = svcCtx.SqlConn.ExecCtx(ctx, `UPDATE work SET process_status='processing',
-		review_status='waiting_process' WHERE id=?`, workID)
-	_, _ = svcCtx.SqlConn.ExecCtx(ctx, `UPDATE media_process_task SET status='processing',
-		stage='promoting_images',progress=10,error_message='' WHERE work_id=?`, workID)
+	if err := svcCtx.MediaRepo.StartImagePromotion(ctx, workID); err != nil {
+		return fmt.Errorf("更新图片处理状态失败: %w", err)
+	}
 
-	var assets []imagePromotionAsset
-	if err := svcCtx.SqlConn.QueryRowsCtx(ctx, &assets, `SELECT ma.id,wa.role,ma.bucket,ma.object_key,
-		ma.origin_name,ma.status,ma.formal_object_key
-		FROM work_asset wa
-		JOIN media_asset ma ON ma.id=wa.media_asset_id
-		WHERE wa.work_id=? AND wa.role IN ('image','cover')
-		ORDER BY CASE wa.role WHEN 'cover' THEN 0 ELSE 1 END,wa.sort`, workID); err != nil {
+	assets, err := svcCtx.MediaRepo.ListImageAssets(ctx, workID)
+	if err != nil {
 		return fmt.Errorf("查询图片作品素材失败: %w", err)
 	}
 	if len(assets) < 2 {
@@ -54,8 +38,8 @@ func promoteImageWork(ctx context.Context, svcCtx *svc.ServiceContext, workID in
 	for _, asset := range assets {
 		if asset.Status == "ready" && asset.FormalObjectKey != "" {
 			promoted = append(promoted, promotedImage{
-				imagePromotionAsset: asset,
-				targetObjectKey:     asset.FormalObjectKey,
+				ProcessAsset:    asset,
+				targetObjectKey: asset.FormalObjectKey,
 			})
 			continue
 		}
@@ -73,27 +57,18 @@ func promoteImageWork(ctx context.Context, svcCtx *svc.ServiceContext, workID in
 			return fmt.Errorf("迁移图片素材%d失败: %w", asset.ID, err)
 		}
 		promoted = append(promoted, promotedImage{
-			imagePromotionAsset: asset,
-			targetObjectKey:     targetObjectKey,
+			ProcessAsset:    asset,
+			targetObjectKey: targetObjectKey,
 		})
 	}
 
-	if err := svcCtx.SqlConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		for _, asset := range promoted {
-			if _, err := session.ExecCtx(ctx, `UPDATE media_asset SET status='ready',formal_bucket=?,
-				formal_object_key=?,process_error='' WHERE id=?`,
-				svcCtx.Config.Minio.FormalBucket, asset.targetObjectKey, asset.ID); err != nil {
-				return err
-			}
-		}
-		if _, err := session.ExecCtx(ctx, `UPDATE media_process_task SET status='succeeded',
-			stage='waiting_review',progress=100,error_message='' WHERE work_id=?`, workID); err != nil {
-			return err
-		}
-		_, err := session.ExecCtx(ctx, `UPDATE work SET process_status='succeeded',
-			review_status='pending_review',publish_status='pending' WHERE id=?`, workID)
-		return err
-	}); err != nil {
+	updates := make([]mediarepo.AssetPromotion, 0, len(promoted))
+	for _, asset := range promoted {
+		updates = append(updates, mediarepo.AssetPromotion{
+			AssetID: asset.ID, FormalBucket: svcCtx.Config.Minio.FormalBucket, FormalObjectKey: asset.targetObjectKey,
+		})
+	}
+	if err := svcCtx.MediaRepo.CompleteImagePromotion(ctx, workID, updates); err != nil {
 		return fmt.Errorf("更新图片作品处理状态失败: %w", err)
 	}
 
@@ -111,10 +86,7 @@ func markImagePromotionFailed(ctx context.Context, svcCtx *svc.ServiceContext, w
 	if len(message) > 1800 {
 		message = message[len(message)-1800:]
 	}
-	_, _ = svcCtx.SqlConn.ExecCtx(ctx, `UPDATE media_process_task SET status='failed',
-		stage='failed',error_message=? WHERE work_id=?`, message, workID)
-	_, _ = svcCtx.SqlConn.ExecCtx(ctx, `UPDATE work SET process_status='failed',
-		review_status='waiting_process',publish_status='pending' WHERE id=?`, workID)
+	_ = svcCtx.MediaRepo.FailProcessing(ctx, workID, message)
 }
 
 func ensureFormalMediaBucket(ctx context.Context, svcCtx *svc.ServiceContext) error {

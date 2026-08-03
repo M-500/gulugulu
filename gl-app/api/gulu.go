@@ -28,7 +28,7 @@ func main() {
 	server := rest.MustNewServer(c.RestConf)
 
 	ctx := svc.NewServiceContext(c)
-	defer ctx.MediaQueue.Close()
+	defer ctx.Close()
 	handler.RegisterHandlers(server, ctx)
 	httpx.SetErrorHandler(xcode.ErrHandler)
 	httpx.SetOkHandler(xcode.OkHandler) // 拦截器

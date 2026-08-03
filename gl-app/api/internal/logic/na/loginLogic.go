@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	userlogic "gl-app/api/internal/logic/user"
-	userModel "gl-app/api/internal/models/user"
+	userrepo "gl-app/api/internal/repo/user_repo"
 	"strings"
 
 	"gl-app/api/internal/svc"
@@ -41,19 +41,19 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	}
 	userInfo, err := l.svcCtx.UserRepo.FindOneByEmail(l.ctx, req.Email)
 	if err != nil {
-		if errors.Is(err, userModel.ErrNotFound) {
+		if errors.Is(err, userrepo.ErrNotFound) {
 			return nil, errors.New("邮箱不存在")
 		}
 		return nil, errors.New("查询用户信息失败")
 	}
 	generateTokenLogic := NewGenerateTokenLogic(l.ctx, l.svcCtx)
-	tokenResp, err := generateTokenLogic.GenerateToken(userInfo.Id)
+	tokenResp, err := generateTokenLogic.GenerateToken(userInfo.ID)
 	if err != nil {
 		return nil, errors.New("生成token失败")
 	}
-	profile, err := userlogic.QueryUserProfile(l.ctx, l.svcCtx, userInfo.Id)
+	profile, err := userlogic.QueryUserProfile(l.ctx, l.svcCtx, userInfo.ID)
 	if err != nil {
-		l.Errorf("登录成功后查询用户基础信息失败，用户ID：%d，错误：%v", userInfo.Id, err)
+		l.Errorf("登录成功后查询用户基础信息失败，用户ID：%d，错误：%v", userInfo.ID, err)
 		return nil, errors.New("查询用户基础信息失败")
 	}
 	res := types.LoginResp{

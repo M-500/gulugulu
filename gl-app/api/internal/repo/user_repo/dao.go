@@ -6,39 +6,66 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserDao interface {
-	FindOneByEmail(ctx context.Context, email string) (*UserModel, error)
-	Insert(ctx context.Context, user *UserModel) error
-	Update(ctx context.Context, user *UserModel) error
-	Delete(ctx context.Context, user *UserModel) error
+// UserDAO 只负责数据库读写，缓存一致性由上层 UserRepo 统一处理。
+type UserDAO interface {
+	FindOneByEmail(ctx context.Context, email string) (*User, error)
+	FindOneByID(ctx context.Context, userID int64) (*User, error)
+	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, user *User) error
+	UpdateByMap(ctx context.Context, userID int64, data map[string]any) error
+	Delete(ctx context.Context, userID int64) error
 }
 
-type userDaoImpl struct {
+type userDAOImpl struct {
 	db *gorm.DB
 }
 
-func NewUserDao(db *gorm.DB) UserDao {
-	return &userDaoImpl{
-		db: db,
-	}
+func NewUserDAO(db *gorm.DB) UserDAO {
+	return &userDAOImpl{db: db}
 }
 
-func (d *userDaoImpl) FindOneByEmail(ctx context.Context, email string) (*UserModel, error) {
-	var user UserModel
+func (d *userDAOImpl) FindOneByID(ctx context.Context, userID int64) (*User, error) {
+	var user User
+	if err := d.db.WithContext(ctx).First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (d *userDAOImpl) FindOneByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
 	if err := d.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (d *userDaoImpl) Insert(ctx context.Context, user *UserModel) error {
+func (d *userDAOImpl) Create(ctx context.Context, user *User) error {
 	return d.db.WithContext(ctx).Create(user).Error
 }
 
-func (d *userDaoImpl) Update(ctx context.Context, user *UserModel) error {
+func (d *userDAOImpl) Update(ctx context.Context, user *User) error {
 	return d.db.WithContext(ctx).Save(user).Error
 }
 
-func (d *userDaoImpl) Delete(ctx context.Context, user *UserModel) error {
-	return d.db.WithContext(ctx).Delete(user).Error
+func (d *userDAOImpl) UpdateByMap(ctx context.Context, userID int64, data map[string]any) error {
+	result := d.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(data)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (d *userDAOImpl) Delete(ctx context.Context, userID int64) error {
+	result := d.db.WithContext(ctx).Delete(&User{}, userID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

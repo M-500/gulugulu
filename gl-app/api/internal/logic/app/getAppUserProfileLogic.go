@@ -36,7 +36,7 @@ func (l *GetAppUserProfileLogic) GetAppUserProfile(req *types.AppUserProfileReq)
 	}
 
 	return &types.AppUserProfileResp{
-		UserId:    userInfo.Id,
+		UserId:    userInfo.ID,
 		NickName:  normalizeAuthorName(userInfo.Nickname),
 		AvatarUrl: buildAppPublicAvatarURL(l.svcCtx, userInfo.Avatar),
 	}, nil

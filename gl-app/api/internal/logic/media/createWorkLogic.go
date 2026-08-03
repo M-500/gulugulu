@@ -2,7 +2,6 @@ package media
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -15,8 +14,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
-	mediaModel "gl-app/api/internal/models/media"
+	mediarepo "gl-app/api/internal/repo/media_repo"
+	workrepo "gl-app/api/internal/repo/work_repo"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
@@ -61,14 +60,6 @@ type createWorkPayload struct {
 	ScheduledAt  string `json:"scheduledAt"`
 }
 
-type lockedMediaAsset struct {
-	ID           int64  `db:"id"`
-	UserID       int64  `db:"user_id"`
-	ResourceType string `db:"resource_type"`
-	Status       string `db:"status"`
-	BoundWorkID  int64  `db:"bound_work_id"`
-}
-
 func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.File, coverHeader *multipart.FileHeader, idempotencyHeader string) (resp *types.CreateWorkResp, err error) {
 	userID := ctxdata.GetUidFromCtx(l.ctx)
 	if userID <= 0 {
@@ -86,14 +77,14 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 		return nil, err
 	}
 
-	if existed, findErr := l.svcCtx.WorkRepo.FindOneByUserIdIdempotencyKey(l.ctx, userID, payload.IdempotencyKey); findErr == nil {
+	if existed, findErr := l.svcCtx.WorkRepo.FindByIdempotencyKey(l.ctx, userID, payload.IdempotencyKey); findErr == nil {
 		if existed.Type == "image" && existed.ProcessStatus != "succeeded" {
-			if promoteErr := promoteImageWork(l.ctx, l.svcCtx, existed.Id); promoteErr != nil {
-				markImagePromotionFailed(l.ctx, l.svcCtx, existed.Id, promoteErr)
+			if promoteErr := promoteImageWork(l.ctx, l.svcCtx, existed.ID); promoteErr != nil {
+				markImagePromotionFailed(l.ctx, l.svcCtx, existed.ID, promoteErr)
 				return nil, promoteErr
 			}
 			return &types.CreateWorkResp{
-				WorkId:        existed.Id,
+				WorkId:        existed.ID,
 				ProcessStatus: "succeeded",
 				ReviewStatus:  "pending_review",
 				PublishStatus: "pending",
@@ -102,12 +93,12 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 		// 数据库事务已成功但Kafka曾短暂不可用时，前端可使用同一个
 		// Idempotency-Key安全重试。只有消息成功写入Kafka才返回成功。
 		if existed.ProcessStatus == "pending" {
-			if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, existed.Id, 0); queueErr != nil {
+			if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, existed.ID, 0); queueErr != nil {
 				return nil, queueErr
 			}
 		}
 		return &types.CreateWorkResp{
-			WorkId:        existed.Id,
+			WorkId:        existed.ID,
 			ProcessStatus: existed.ProcessStatus,
 			ReviewStatus:  existed.ReviewStatus,
 			PublishStatus: existed.PublishStatus,
@@ -122,114 +113,41 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	defer func() {
 		if cleanupCover {
 			_ = l.svcCtx.MinioClient.RemoveObject(context.Background(), coverAsset.Bucket, coverAsset.ObjectKey, minio.RemoveObjectOptions{})
-			_ = l.svcCtx.MediaAssetRepo.Delete(context.Background(), coverAsset.Id)
+			_ = l.svcCtx.MediaRepo.DeleteAsset(context.Background(), coverAsset.ID)
 		}
 	}()
 
-	var workID int64
-	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		if payload.CollectionID > 0 {
-			var collectionOwnerID int64
-			if queryErr := session.QueryRowCtx(ctx, &collectionOwnerID,
-				"SELECT user_id FROM collection WHERE id=? AND deleted_at IS NULL LIMIT 1",
-				payload.CollectionID); queryErr != nil || collectionOwnerID != userID {
-				return fmt.Errorf("合集不存在或不属于当前用户")
-			}
+	visibilityUsers := ""
+	if len(payload.Visibility.UserIDs) > 0 {
+		value, marshalErr := json.Marshal(payload.Visibility.UserIDs)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("序列化可见用户失败: %w", marshalErr)
 		}
-		for _, item := range payload.Assets {
-			var asset lockedMediaAsset
-			if queryErr := session.QueryRowCtx(ctx, &asset,
-				"SELECT id,user_id,resource_type,status,bound_work_id FROM media_asset WHERE id=? FOR UPDATE",
-				item.MediaID); queryErr != nil {
-				return fmt.Errorf("素材%d不存在: %w", item.MediaID, queryErr)
-			}
-			if asset.UserID != userID {
-				return fmt.Errorf("素材%d不属于当前用户", item.MediaID)
-			}
-			if asset.Status != "uploaded" || asset.BoundWorkID != 0 {
-				return fmt.Errorf("素材%d状态不可发布", item.MediaID)
-			}
-			if asset.ResourceType != payload.Type {
-				return fmt.Errorf("作品类型与素材%d类型不一致", item.MediaID)
-			}
+		visibilityUsers = string(value)
+	}
+	var scheduledAt *time.Time
+	if payload.ScheduledAt != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, payload.ScheduledAt)
+		if parseErr != nil {
+			return nil, fmt.Errorf("scheduledAt必须是RFC3339时间: %w", parseErr)
 		}
-
-		visibilityUsers, _ := json.Marshal(payload.Visibility.UserIDs)
-		var scheduledAt sql.NullTime
-		if payload.ScheduledAt != "" {
-			parsed, parseErr := time.Parse(time.RFC3339, payload.ScheduledAt)
-			if parseErr != nil {
-				return fmt.Errorf("scheduledAt必须是RFC3339时间: %w", parseErr)
-			}
-			scheduledAt = sql.NullTime{Time: parsed.UTC(), Valid: true}
-		}
-
-		result, insertErr := session.ExecCtx(ctx, `INSERT INTO work
-			(user_id,type,title,content,visibility,visibility_user_ids,collection_id,original,cover_asset_id,
-			 process_status,review_status,publish_status,scheduled_at,idempotency_key)
-			VALUES(?,?,?,?,?,?,?,?,?,'pending','waiting_process','pending',?,?)`,
-			userID, payload.Type, strings.TrimSpace(payload.Title), payload.Content, payload.Visibility.Type,
-			string(visibilityUsers), payload.CollectionID, payload.Original, coverAsset.Id, scheduledAt, payload.IdempotencyKey)
-		if insertErr != nil {
-			return fmt.Errorf("创建作品失败: %w", insertErr)
-		}
-		workID, insertErr = result.LastInsertId()
-		if insertErr != nil {
-			return insertErr
-		}
-
-		for _, item := range payload.Assets {
-			role := payload.Type
-			if _, insertErr = session.ExecCtx(ctx,
-				"INSERT INTO work_asset(work_id,media_asset_id,role,sort) VALUES(?,?,?,?)",
-				workID, item.MediaID, role, item.Sort); insertErr != nil {
-				return insertErr
-			}
-			if _, insertErr = session.ExecCtx(ctx,
-				"UPDATE media_asset SET status='bound',bound_work_id=? WHERE id=?",
-				workID, item.MediaID); insertErr != nil {
-				return insertErr
-			}
-		}
-		if _, insertErr = session.ExecCtx(ctx,
-			"INSERT INTO work_asset(work_id,media_asset_id,role,sort) VALUES(?,?, 'cover',0)",
-			workID, coverAsset.Id); insertErr != nil {
-			return insertErr
-		}
-		if _, insertErr = session.ExecCtx(ctx,
-			"UPDATE media_asset SET status='bound',bound_work_id=? WHERE id=?",
-			workID, coverAsset.Id); insertErr != nil {
-			return insertErr
-		}
-
-		for index, topic := range payload.Topics {
-			name := strings.TrimSpace(strings.TrimPrefix(topic.Name, "#"))
-			if name == "" {
-				continue
-			}
-			normalized := strings.ToLower(name)
-			topicResult, topicErr := session.ExecCtx(ctx,
-				"INSERT INTO topic(name,normalized_name) VALUES(?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)",
-				name, normalized)
-			if topicErr != nil {
-				return topicErr
-			}
-			topicID, topicErr := topicResult.LastInsertId()
-			if topicErr != nil {
-				return topicErr
-			}
-			if _, topicErr = session.ExecCtx(ctx,
-				"INSERT IGNORE INTO work_topic(work_id,topic_id,sort) VALUES(?,?,?)",
-				workID, topicID, index); topicErr != nil {
-				return topicErr
-			}
-		}
-
-		_, insertErr = session.ExecCtx(ctx,
-			"INSERT INTO media_process_task(work_id,task_type,status,stage,progress) VALUES(?,'process_work','pending','queued',0)",
-			workID)
-		return insertErr
-	})
+		value := parsed.UTC()
+		scheduledAt = &value
+	}
+	input := workrepo.CreateWorkInput{
+		UserID: userID, Type: payload.Type, Title: strings.TrimSpace(payload.Title), Content: payload.Content,
+		Visibility: payload.Visibility.Type, VisibilityUserIDs: visibilityUsers, CollectionID: payload.CollectionID,
+		Original: payload.Original, CoverAssetID: coverAsset.ID, ScheduledAt: scheduledAt, IdempotencyKey: payload.IdempotencyKey,
+		Assets: make([]workrepo.CreateAssetInput, 0, len(payload.Assets)),
+		Topics: make([]workrepo.CreateTopicInput, 0, len(payload.Topics)),
+	}
+	for _, item := range payload.Assets {
+		input.Assets = append(input.Assets, workrepo.CreateAssetInput{MediaID: item.MediaID, Sort: int64(item.Sort)})
+	}
+	for index, item := range payload.Topics {
+		input.Topics = append(input.Topics, workrepo.CreateTopicInput{Name: item.Name, Sort: int64(index)})
+	}
+	workID, err := l.svcCtx.WorkRepo.Create(l.ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +179,7 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	}, nil
 }
 
-func (l *CreateWorkLogic) storeCover(userID int64, file multipart.File, header *multipart.FileHeader) (*mediaModel.MediaAsset, error) {
+func (l *CreateWorkLogic) storeCover(userID int64, file multipart.File, header *multipart.FileHeader) (*mediarepo.MediaAsset, error) {
 	if header.Size <= 0 || header.Size > 100<<20 {
 		return nil, fmt.Errorf("封面大小必须在100MB以内")
 	}
@@ -289,8 +207,8 @@ func (l *CreateWorkLogic) storeCover(userID int64, file multipart.File, header *
 		return nil, fmt.Errorf("上传封面失败: %w", err)
 	}
 
-	asset := &mediaModel.MediaAsset{
-		UserId:       userID,
+	asset := &mediarepo.MediaAsset{
+		UserID:       userID,
 		ResourceType: "image",
 		Bucket:       bucket,
 		ObjectKey:    objectKey,
@@ -302,13 +220,12 @@ func (l *CreateWorkLogic) storeCover(userID int64, file multipart.File, header *
 		Width:        int64(config.Width),
 		Height:       int64(config.Height),
 	}
-	result, err := l.svcCtx.MediaAssetRepo.Insert(l.ctx, asset)
+	err = l.svcCtx.MediaRepo.CreateAsset(l.ctx, asset)
 	if err != nil {
 		_ = l.svcCtx.MinioClient.RemoveObject(l.ctx, bucket, objectKey, minio.RemoveObjectOptions{})
 		return nil, fmt.Errorf("保存封面记录失败: %w", err)
 	}
-	asset.Id, err = result.LastInsertId()
-	return asset, err
+	return asset, nil
 }
 
 func validateCreateWorkPayload(payload *createWorkPayload) error {

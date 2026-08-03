@@ -17,28 +17,20 @@ import (
 	"gl-app/api/internal/types"
 )
 
-type profileRow struct {
-	UserID   int64  `db:"id"`
-	Email    string `db:"email"`
-	NickName string `db:"nickname"`
-	Avatar   string `db:"avatar"`
-}
-
 // QueryUserProfile 统一查询用户基础资料，登录态初始化和个人资料页都走这一套返回结构。
 func QueryUserProfile(ctx context.Context, svcCtx *svc.ServiceContext, userID int64) (*types.UserProfileResp, error) {
 	if userID <= 0 {
 		return nil, fmt.Errorf("用户未登录")
 	}
-	var row profileRow
-	if err := svcCtx.SqlConn.QueryRowCtx(ctx, &row,
-		"SELECT id,email,nickname,avatar FROM user WHERE id=? AND deleted_at IS NULL LIMIT 1", userID); err != nil {
+	user, err := svcCtx.UserRepo.FindOneByID(ctx, userID)
+	if err != nil {
 		return nil, fmt.Errorf("查询用户资料失败: %w", err)
 	}
 	resp := &types.UserProfileResp{
-		UserId: row.UserID, Email: row.Email, NickName: row.NickName,
+		UserId: user.ID, Email: user.Email, NickName: user.Nickname,
 	}
-	if row.Avatar != "" {
-		resp.AvatarUrl = publicObjectURL(svcCtx, publicAvatarBucket(svcCtx), row.Avatar)
+	if user.Avatar != "" {
+		resp.AvatarUrl = publicObjectURL(svcCtx, publicAvatarBucket(svcCtx), user.Avatar)
 	}
 	return resp, nil
 }
@@ -49,8 +41,7 @@ func updateNickname(ctx context.Context, svcCtx *svc.ServiceContext, userID int6
 	if length < 2 || length > 32 {
 		return fmt.Errorf("昵称长度必须是2到32个字符")
 	}
-	if _, err := svcCtx.SqlConn.ExecCtx(ctx,
-		"UPDATE user SET nickname=? WHERE id=? AND deleted_at IS NULL", nickname, userID); err != nil {
+	if err := svcCtx.UserRepo.UpdateByMap(ctx, userID, map[string]any{"nickname": nickname}); err != nil {
 		return fmt.Errorf("更新用户昵称失败: %w", err)
 	}
 	return nil
@@ -93,8 +84,7 @@ func saveAvatarObjectKey(ctx context.Context, svcCtx *svc.ServiceContext, userID
 	if objectKey == "" {
 		return nil
 	}
-	if _, err := svcCtx.SqlConn.ExecCtx(ctx,
-		"UPDATE user SET avatar=? WHERE id=? AND deleted_at IS NULL", objectKey, userID); err != nil {
+	if err := svcCtx.UserRepo.UpdateByMap(ctx, userID, map[string]any{"avatar": objectKey}); err != nil {
 		return fmt.Errorf("保存用户头像失败: %w", err)
 	}
 	return nil

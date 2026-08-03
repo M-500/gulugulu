@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	workrepo "gl-app/api/internal/repo/work_repo"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 	"gl-app/pkg/ctxdata"
@@ -32,16 +33,8 @@ func (l *GetWorkPlaylistLogic) GetWorkPlaylist(req *types.WorkIdReq) (string, er
 		return "", fmt.Errorf("用户未登录")
 	}
 
-	var asset struct {
-		Bucket    string `db:"formal_bucket"`
-		ObjectKey string `db:"formal_object_key"`
-	}
-	if err := l.svcCtx.SqlConn.QueryRowCtx(l.ctx, &asset, `SELECT ma.formal_bucket,ma.formal_object_key
-		FROM work w
-		JOIN work_asset wa ON wa.work_id=w.id AND wa.role='video'
-		JOIN media_asset ma ON ma.id=wa.media_asset_id
-		WHERE w.id=? AND w.user_id=? AND w.deleted_at IS NULL AND ma.status='ready'
-		LIMIT 1`, req.WorkId, userID); err != nil {
+	asset, err := l.svcCtx.WorkRepo.FindVideoAsset(l.ctx, req.WorkId, userID, workrepo.VideoAccessOwner)
+	if err != nil {
 		return "", fmt.Errorf("视频播放清单不存在: %w", err)
 	}
 

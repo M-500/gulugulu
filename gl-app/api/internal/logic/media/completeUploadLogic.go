@@ -34,12 +34,12 @@ func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (resp
 		return nil, fmt.Errorf("用户未登录")
 	}
 
-	asset, err := l.svcCtx.MediaAssetRepo.FindOne(l.ctx, req.MediaId)
+	asset, err := l.svcCtx.MediaRepo.FindAssetByID(l.ctx, req.MediaId)
 	if err != nil {
 		return nil, fmt.Errorf("媒体素材不存在: %w", err)
 	}
 
-	if asset.UserId != userId {
+	if asset.UserID != userId {
 		return nil, fmt.Errorf("无权操作该媒体素材")
 	}
 
@@ -58,7 +58,7 @@ func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (resp
 		asset.ContentType = info.ContentType
 	}
 
-	if err := l.svcCtx.MediaAssetRepo.Update(l.ctx, asset); err != nil {
+	if err := l.svcCtx.MediaRepo.UpdateAsset(l.ctx, asset); err != nil {
 		return nil, fmt.Errorf("更新媒体素材状态失败: %w", err)
 	}
 	expiresIn := l.svcCtx.Config.Minio.PresignExpire
@@ -71,7 +71,7 @@ func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (resp
 	}
 
 	return &types.CompleteUploadResp{
-		MediaId:    asset.Id,
+		MediaId:    asset.ID,
 		Status:     asset.Status,
 		Bucket:     asset.Bucket,
 		ObjectKey:  asset.ObjectKey,

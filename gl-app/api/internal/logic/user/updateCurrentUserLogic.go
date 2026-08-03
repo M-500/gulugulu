@@ -35,8 +35,7 @@ func (l *UpdateCurrentUserLogic) UpdateCurrentUser(req *types.UpdateUserProfileR
 	if length < 2 || length > 32 {
 		return nil, fmt.Errorf("昵称长度必须是2到32个字符")
 	}
-	if _, err = l.svcCtx.SqlConn.ExecCtx(l.ctx,
-		"UPDATE user SET nickname=? WHERE id=? AND deleted_at IS NULL", nickname, userID); err != nil {
+	if err = l.svcCtx.UserRepo.UpdateByMap(l.ctx, userID, map[string]any{"nickname": nickname}); err != nil {
 		return nil, fmt.Errorf("更新用户昵称失败: %w", err)
 	}
 	return QueryUserProfile(l.ctx, l.svcCtx, userID)

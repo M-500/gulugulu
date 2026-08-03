@@ -33,14 +33,11 @@ func (l *UpdateCreatorWorkVisibilityLogic) UpdateCreatorWorkVisibility(req *type
 	if visibility != "public" && visibility != "private" && visibility != "mutual" {
 		return nil, fmt.Errorf("visibility必须是public、private或mutual")
 	}
-	result, err := l.svcCtx.SqlConn.ExecCtx(l.ctx, `UPDATE work SET visibility=?,visibility_user_ids=NULL
-		WHERE id=? AND user_id=? AND process_status='succeeded' AND deleted_at IS NULL`,
-		visibility, req.WorkId, userID)
+	updated, err := l.svcCtx.WorkRepo.UpdateCreatorVisibility(l.ctx, req.WorkId, userID, visibility)
 	if err != nil {
 		return nil, fmt.Errorf("修改作品权限失败: %w", err)
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if !updated {
 		return nil, fmt.Errorf("作品不存在或当前状态不可修改")
 	}
 

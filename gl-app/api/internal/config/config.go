@@ -10,7 +10,10 @@ type Config struct {
 	rest.RestConf
 
 	Mysql struct {
-		DataSource string
+		DataSource   string
+		MaxIdleConns int `json:",default=10"`
+		MaxOpenConns int `json:",default=100"`
+		ConnMaxLife  int `json:",default=3600"`
 	}
 
 	CacheRedis cache.CacheConf

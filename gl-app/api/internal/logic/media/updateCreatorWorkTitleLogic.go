@@ -33,14 +33,11 @@ func (l *UpdateCreatorWorkTitleLogic) UpdateCreatorWorkTitle(req *types.UpdateCr
 	if title == "" || len([]rune(title)) > 50 {
 		return nil, fmt.Errorf("作品标题不能为空且最多50个字符")
 	}
-	result, err := l.svcCtx.SqlConn.ExecCtx(l.ctx, `UPDATE work SET title=?
-		WHERE id=? AND user_id=? AND process_status='succeeded' AND deleted_at IS NULL`,
-		title, req.WorkId, userID)
+	updated, err := l.svcCtx.WorkRepo.UpdateCreatorTitle(l.ctx, req.WorkId, userID, title)
 	if err != nil {
 		return nil, fmt.Errorf("修改作品标题失败: %w", err)
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if !updated {
 		return nil, fmt.Errorf("作品不存在或当前状态不可编辑")
 	}
 

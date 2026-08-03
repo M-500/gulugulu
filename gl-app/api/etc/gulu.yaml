@@ -7,6 +7,10 @@ MaxBytes: 104857600
 # MySQL配置
 Mysql:
   DataSource: root:wulinlin@tcp(192.168.10.26:3306)/gulugulu?charset=utf8mb4&parseTime=True&loc=Local
+  # GORM复用database/sql连接池，生产环境可按数据库容量调整。
+  MaxIdleConns: 10
+  MaxOpenConns: 100
+  ConnMaxLife: 3600
 
 CacheRedis:
   - Host: 127.0.0.1:16379

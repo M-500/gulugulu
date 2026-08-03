@@ -2,14 +2,13 @@ package na
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"gl-app/api/internal/models/user"
-	"gl-app/pkg/utils/cryptx"
-	"time"
+	"strings"
 
+	userrepo "gl-app/api/internal/repo/user_repo"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
+	"gl-app/pkg/utils/cryptx"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -22,58 +21,33 @@ type RegisterLogic struct {
 
 // register
 func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic {
-	return &RegisterLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+	return &RegisterLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
 
-func (l *RegisterLogic) Register(req *types.RegisterReq) (resp *types.RegisterResp, err error) {
-	if req.Email == "" {
+func (l *RegisterLogic) Register(req *types.RegisterReq) (*types.RegisterResp, error) {
+	email := strings.TrimSpace(req.Email)
+	if email == "" {
 		return nil, errors.New("email不能为空")
 	}
-	_, err = l.svcCtx.UserRepo.FindOneByEmail(l.ctx, req.Email)
-	if err == nil {
+	if _, err := l.svcCtx.UserRepo.FindOneByEmail(l.ctx, email); err == nil {
 		return nil, errors.New("email 已经被占用，无法注册")
+	} else if !errors.Is(err, userrepo.ErrNotFound) {
+		return nil, errors.New("查询邮箱是否可用失败")
 	}
-	if !errors.Is(err, user.ErrNotFound) {
-		return nil, errors.New("email 已经被占用，无法注册")
+
+	// 用户写入和自增ID回填均由 GORM Repo 完成。
+	user := &userrepo.User{
+		Email: email, Nickname: strings.TrimSpace(req.NickName),
+		Password: cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password), Sex: 0,
 	}
-	now := time.Now()
-	// 校验邮箱验证码 TODO
-	userInfo := user.User{
-		CreatedAt: now,
-		UpdatedAt: now,
-		DeletedAt: sql.NullTime{
-			Valid: false,
-		},
-		Email:    req.Email,
-		Nickname: req.NickName,
-		Password: cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
-		Sex:      0,
-		LastLoginAt: sql.NullTime{
-			Valid: false,
-		},
-	}
-	insertResult, err := l.svcCtx.UserRepo.Insert(l.ctx, &userInfo)
-	if err != nil {
+	if err := l.svcCtx.UserRepo.Create(l.ctx, user); err != nil {
 		return nil, errors.New("注册失败")
 	}
-	userId, err := insertResult.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-	// 组装Token
-	generateTokenLogic := NewGenerateTokenLogic(l.ctx, l.svcCtx)
-	tokenResp, err := generateTokenLogic.GenerateToken(userId)
+	tokenResp, err := NewGenerateTokenLogic(l.ctx, l.svcCtx).GenerateToken(user.ID)
 	if err != nil {
 		return nil, errors.New("生成token失败")
 	}
-	res := types.RegisterResp{
-		AccessToken:  tokenResp.AccessToken,
-		AccessExpire: tokenResp.AccessExpire,
-		RefreshAfter: tokenResp.RefreshAfter,
-	}
-	return &res, nil
+	return &types.RegisterResp{
+		AccessToken: tokenResp.AccessToken, AccessExpire: tokenResp.AccessExpire, RefreshAfter: tokenResp.RefreshAfter,
+	}, nil
 }

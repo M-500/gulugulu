@@ -20,6 +20,7 @@ import (
 	corequeue "github.com/zeromicro/go-zero/core/queue"
 	"github.com/zeromicro/go-zero/core/service"
 	"gl-app/api/internal/queue"
+	mediarepo "gl-app/api/internal/repo/media_repo"
 	"gl-app/api/internal/svc"
 )
 
@@ -32,18 +33,6 @@ type MediaWorker struct {
 }
 
 var _ service.Service = (*MediaWorker)(nil)
-
-type processAsset struct {
-	ID              int64  `db:"id"`
-	Role            string `db:"role"`
-	Bucket          string `db:"bucket"`
-	ObjectKey       string `db:"object_key"`
-	OriginName      string `db:"origin_name"`
-	ContentType     string `db:"content_type"`
-	FormalBucket    string `db:"formal_bucket"`
-	FormalObjectKey string `db:"formal_object_key"`
-	Status          string `db:"status"`
-}
 
 type probeOutput struct {
 	Streams []struct {
@@ -78,8 +67,7 @@ func (w *MediaWorker) Start() {
 	// A worker can die after claiming a database task but before committing the
 	// Kafka offset. Re-open only very old tasks to avoid competing with a
 	// legitimately long transcode still running on another worker.
-	_, _ = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_process_task SET status='pending',stage='queued'
-		WHERE status='processing' AND updated_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)`)
+	_ = w.svcCtx.MediaRepo.RecoverStaleTasks(w.ctx, time.Now().Add(-2*time.Hour))
 	go w.runDispatcher()
 	go w.runScheduler()
 
@@ -119,25 +107,15 @@ func (w *MediaWorker) Consume(ctx context.Context, _ string, value string) error
 }
 
 func (w *MediaWorker) processWork(workID int64) error {
-	result, err := w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_process_task SET status='processing',
-		stage='preparing',progress=5,error_message='' WHERE work_id=? AND status IN ('pending','failed')`, workID)
+	claimed, err := w.svcCtx.MediaRepo.ClaimTask(w.ctx, workID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if !claimed {
 		return nil
 	}
-	if _, err = w.svcCtx.SqlConn.ExecCtx(w.ctx,
-		"UPDATE work SET process_status='processing',review_status='waiting_process' WHERE id=?", workID); err != nil {
-		return err
-	}
-
-	var assets []processAsset
-	if err = w.svcCtx.SqlConn.QueryRowsCtx(w.ctx, &assets, `SELECT ma.id,wa.role,ma.bucket,ma.object_key,
-		ma.origin_name,ma.content_type,ma.formal_bucket,ma.formal_object_key,ma.status
-		FROM work_asset wa JOIN media_asset ma ON ma.id=wa.media_asset_id
-		WHERE wa.work_id=? ORDER BY CASE wa.role WHEN 'cover' THEN 0 ELSE 1 END,wa.sort`, workID); err != nil {
+	assets, err := w.svcCtx.MediaRepo.ListProcessAssets(w.ctx, workID)
+	if err != nil {
 		return err
 	}
 	if len(assets) < 2 {
@@ -149,9 +127,7 @@ func (w *MediaWorker) processWork(workID int64) error {
 			continue
 		}
 		progress := int64(10 + (index * 75 / len(assets)))
-		_, _ = w.svcCtx.SqlConn.ExecCtx(w.ctx,
-			"UPDATE media_process_task SET stage=?,progress=? WHERE work_id=?",
-			"processing_"+asset.Role, progress, workID)
+		_ = w.svcCtx.MediaRepo.UpdateTaskProgress(w.ctx, workID, "processing_"+asset.Role, progress)
 		if asset.Role == "video" {
 			if err = w.transcodeVideo(workID, asset); err != nil {
 				return err
@@ -163,17 +139,10 @@ func (w *MediaWorker) processWork(workID int64) error {
 		}
 	}
 
-	_, err = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_process_task SET status='succeeded',
-		stage='waiting_review',progress=100,error_message='' WHERE work_id=?`, workID)
-	if err != nil {
-		return err
-	}
-	_, err = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE work SET process_status='succeeded',
-		review_status='pending_review',publish_status='pending' WHERE id=?`, workID)
-	return err
+	return w.svcCtx.MediaRepo.CompleteProcessing(w.ctx, workID)
 }
 
-func (w *MediaWorker) promoteImage(workID int64, asset processAsset) error {
+func (w *MediaWorker) promoteImage(workID int64, asset mediarepo.ProcessAsset) error {
 	ext := strings.ToLower(filepath.Ext(asset.OriginName))
 	if ext == "" {
 		ext = ".jpg"
@@ -184,16 +153,14 @@ func (w *MediaWorker) promoteImage(workID int64, asset processAsset) error {
 	if _, err := w.svcCtx.MinioClient.CopyObject(w.ctx, destination, source); err != nil {
 		return fmt.Errorf("迁移图片%d失败: %w", asset.ID, err)
 	}
-	if _, err := w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_asset SET status='ready',formal_bucket=?,
-		formal_object_key=?,process_error='' WHERE id=?`,
-		w.svcCtx.Config.Minio.FormalBucket, target, asset.ID); err != nil {
+	if err := w.svcCtx.MediaRepo.MarkAssetReady(w.ctx, asset.ID, w.svcCtx.Config.Minio.FormalBucket, target); err != nil {
 		return err
 	}
 	_ = w.svcCtx.MinioClient.RemoveObject(w.ctx, asset.Bucket, asset.ObjectKey, minio.RemoveObjectOptions{})
 	return nil
 }
 
-func (w *MediaWorker) transcodeVideo(workID int64, asset processAsset) error {
+func (w *MediaWorker) transcodeVideo(workID int64, asset mediarepo.ProcessAsset) error {
 	baseDir, err := os.MkdirTemp(w.svcCtx.Config.MediaWorker.TempDir, fmt.Sprintf("work-%d-", workID))
 	if err != nil {
 		return fmt.Errorf("创建转码目录失败: %w", err)
@@ -261,9 +228,8 @@ func (w *MediaWorker) transcodeVideo(workID int64, asset processAsset) error {
 	}
 
 	manifestKey := prefix + "/index.m3u8"
-	if _, err = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_asset SET status='ready',formal_bucket=?,
-		formal_object_key=?,duration_ms=?,width=?,height=?,process_error='' WHERE id=?`,
-		w.svcCtx.Config.Minio.FormalBucket, manifestKey, probe.durationMs, probe.width, probe.height, asset.ID); err != nil {
+	if err = w.svcCtx.MediaRepo.MarkVideoAssetReady(w.ctx, asset.ID, w.svcCtx.Config.Minio.FormalBucket,
+		manifestKey, probe.durationMs, probe.width, probe.height); err != nil {
 		return err
 	}
 	_ = w.svcCtx.MinioClient.RemoveObject(w.ctx, asset.Bucket, asset.ObjectKey, minio.RemoveObjectOptions{})
@@ -303,20 +269,10 @@ func (w *MediaWorker) probeVideo(input string) (videoMetadata, error) {
 
 func (w *MediaWorker) markFailed(workID int64, processErr error) {
 	message := tail(processErr.Error(), 1800)
-	_, _ = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_process_task SET status='failed',stage='failed',
-		error_message=? WHERE work_id=?`, message, workID)
-	_, _ = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE work SET process_status='failed',
-		review_status='waiting_process',publish_status='pending' WHERE id=?`, workID)
-	_, _ = w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE media_asset ma JOIN work_asset wa ON wa.media_asset_id=ma.id
-		SET ma.status=IF(ma.status='ready','ready','failed'),ma.process_error=? WHERE wa.work_id=?`, message, workID)
+	_ = w.svcCtx.MediaRepo.FailProcessing(w.ctx, workID, message)
 }
 
 func (w *MediaWorker) runDispatcher() {
-	type pendingWork struct {
-		WorkID int64  `db:"work_id"`
-		Type   string `db:"type"`
-	}
-
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -324,12 +280,8 @@ func (w *MediaWorker) runDispatcher() {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
-			var works []pendingWork
-			if err := w.svcCtx.SqlConn.QueryRowsCtx(w.ctx, &works, `SELECT t.work_id,w.type
-				FROM media_process_task t
-				JOIN work w ON w.id=t.work_id
-				WHERE t.status='pending' AND t.updated_at < DATE_SUB(NOW(), INTERVAL 20 SECOND)
-				LIMIT 100`); err != nil {
+			works, err := w.svcCtx.MediaRepo.ListPendingWorks(w.ctx, time.Now().Add(-20*time.Second), 100)
+			if err != nil {
 				continue
 			}
 			for _, item := range works {
@@ -355,9 +307,7 @@ func (w *MediaWorker) runScheduler() {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
-			_, err := w.svcCtx.SqlConn.ExecCtx(w.ctx, `UPDATE work SET publish_status='published',
-				published_at=NOW(3) WHERE review_status='approved' AND publish_status='scheduled'
-				AND scheduled_at<=NOW(3) AND deleted_at IS NULL`)
+			err := w.svcCtx.MediaRepo.PublishScheduledWorks(w.ctx, time.Now().UTC())
 			if err != nil {
 				logx.Errorf("执行定时发布扫描失败: %v", err)
 			}
