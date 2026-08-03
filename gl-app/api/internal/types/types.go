@@ -282,6 +282,9 @@ type UpdateUserInfoReq struct {
 
 type UpdateUserProfileReq struct {
 	NickName string `json:"nickName"`
+	Bio      string `json:"bio,optional"`     // 用户简介
+	Sex      int64  `json:"sex,optional"`     // 0保密、1男、2女
+	BothDay  string `json:"bothDay,optional"` // 用户生日，格式YYYY-MM-DD；空字符串表示清空
 }
 
 type UploadUserAvatarReq struct {
@@ -300,6 +303,9 @@ type UserProfileResp struct {
 	Email     string `json:"email"`
 	NickName  string `json:"nickName"`
 	AvatarUrl string `json:"avatarUrl,optional"`
+	Bio       string `json:"bio"`
+	Sex       int64  `json:"sex"`
+	BothDay   string `json:"bothDay"`
 }
 
 type UserPublishedWorkListReq struct {

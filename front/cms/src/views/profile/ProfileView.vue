@@ -52,22 +52,53 @@
         </template>
 
         <el-form label-position="top" @submit.prevent="saveProfile">
-          <el-form-item label="登录邮箱">
-            <el-input v-model="form.email" disabled>
-              <template #prefix><el-icon><Message /></el-icon></template>
-            </el-input>
-            <p class="profile-form-tip">登录邮箱暂不支持在个人中心修改。</p>
-          </el-form-item>
-          <el-form-item label="用户昵称">
+          <div class="profile-form-grid">
+            <el-form-item label="登录邮箱">
+              <el-input v-model="form.email" disabled>
+                <template #prefix><el-icon><Message /></el-icon></template>
+              </el-input>
+              <p class="profile-form-tip">登录邮箱暂不支持在个人中心修改。</p>
+            </el-form-item>
+            <el-form-item label="用户昵称">
+              <el-input
+                v-model.trim="form.nickName"
+                maxlength="32"
+                minlength="2"
+                placeholder="请输入2到32个字符"
+                show-word-limit
+              >
+                <template #prefix><el-icon><User /></el-icon></template>
+              </el-input>
+            </el-form-item>
+            <el-form-item label="性别">
+              <el-select v-model="form.sex" placeholder="请选择性别">
+                <el-option label="保密" :value="0" />
+                <el-option label="男" :value="1" />
+                <el-option label="女" :value="2" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="生日">
+              <el-date-picker
+                v-model="form.bothDay"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="请选择生日"
+                :disabled-date="disableFutureDate"
+                clearable
+              />
+            </el-form-item>
+          </div>
+
+          <el-form-item label="个性签名">
             <el-input
-              v-model.trim="form.nickName"
-              maxlength="32"
-              minlength="2"
-              placeholder="请输入2到32个字符"
+              v-model="form.bio"
+              type="textarea"
+              :rows="4"
+              maxlength="200"
+              placeholder="介绍一下自己吧"
+              resize="none"
               show-word-limit
-            >
-              <template #prefix><el-icon><User /></el-icon></template>
-            </el-input>
+            />
           </el-form-item>
 
           <div class="profile-form-actions">
@@ -95,7 +126,10 @@ const previewUrl = ref('')
 const form = reactive({
   email: '',
   nickName: '',
-  avatarUrl: ''
+  avatarUrl: '',
+  bio: '',
+  sex: 0,
+  bothDay: ''
 })
 const avatarText = computed(() => (form.nickName || form.email || '咕').slice(0, 1))
 
@@ -138,7 +172,12 @@ async function saveProfile() {
   }
   saving.value = true
   try {
-    let profile = await updateCurrentUser({ nickName: form.nickName })
+    let profile = await updateCurrentUser({
+      nickName: form.nickName,
+      bio: form.bio,
+      sex: form.sex,
+      bothDay: form.bothDay || ''
+    })
     if (selectedAvatar.value) {
       profile = await uploadCurrentUserAvatar(selectedAvatar.value)
     }
@@ -151,6 +190,10 @@ async function saveProfile() {
   } finally {
     saving.value = false
   }
+}
+
+function disableFutureDate(date) {
+  return date.getTime() > Date.now()
 }
 
 function revokePreview() {

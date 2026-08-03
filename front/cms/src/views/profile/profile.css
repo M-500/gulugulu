@@ -122,6 +122,17 @@
   font-size: 10px;
 }
 
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.profile-form-grid .el-select,
+.profile-form-grid .el-date-editor {
+  width: 100%;
+}
+
 .profile-form-actions {
   display: flex;
   align-items: center;
@@ -152,5 +163,9 @@
   .profile-form-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .profile-form-grid {
+    grid-template-columns: 1fr;
   }
 }

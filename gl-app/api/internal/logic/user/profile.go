@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -28,6 +29,10 @@ func QueryUserProfile(ctx context.Context, svcCtx *svc.ServiceContext, userID in
 	}
 	resp := &types.UserProfileResp{
 		UserId: user.ID, Email: user.Email, NickName: user.Nickname,
+		Bio: user.Bio, Sex: user.Sex,
+	}
+	if user.BothDay != nil {
+		resp.BothDay = user.BothDay.Format(time.DateOnly)
 	}
 	if user.Avatar != "" {
 		resp.AvatarUrl = publicObjectURL(svcCtx, publicAvatarBucket(svcCtx), user.Avatar)

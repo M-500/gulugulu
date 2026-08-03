@@ -19,7 +19,10 @@ export async function uploadCurrentUserAvatar(file) {
 function normalizeProfile(profile) {
   return {
     ...profile,
-    avatarUrl: normalizeObjectStorageUrl(profile?.avatarUrl)
+    avatarUrl: normalizeObjectStorageUrl(profile?.avatarUrl),
+    bio: profile?.bio || '',
+    sex: Number(profile?.sex ?? 0),
+    bothDay: profile?.bothDay || ''
   }
 }
 

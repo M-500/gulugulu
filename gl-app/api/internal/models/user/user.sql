@@ -8,6 +8,8 @@ CREATE TABLE `user` (
   `avatar` varchar(512) NOT NULL DEFAULT '' COMMENT '用户头像在正式对象存储桶中的对象Key',
   `password` varchar(255) NOT NULL COMMENT '密码',
   `sex` tinyint NOT NULL DEFAULT '0' COMMENT '性别',
+  `bio` varchar(256) NOT NULL DEFAULT '' COMMENT '用户简介',
+  `both_day` date DEFAULT NULL COMMENT '用户生日',
   `last_login_at` datetime DEFAULT NULL COMMENT '最后一次登录时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_email` (`email`) USING BTREE

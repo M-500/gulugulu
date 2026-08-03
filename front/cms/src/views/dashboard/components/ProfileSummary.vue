@@ -2,12 +2,14 @@
   <section class="profile-summary">
     <div class="profile-summary__identity">
       <div class="profile-summary__avatar">
-        <img
-          v-if="profile.avatarUrl"
-          :src="profile.avatarUrl"
-          :alt="`${displayName}的头像`"
-        >
-        <b v-else>{{ avatarText }}</b>
+        <div class="profile-summary__avatar-image">
+          <img
+            v-if="profile.avatarUrl"
+            :src="profile.avatarUrl"
+            :alt="`${displayName}的头像`"
+          >
+          <b v-else>{{ avatarText }}</b>
+        </div>
         <span />
       </div>
       <div>
@@ -75,8 +77,10 @@ const avatarText = computed(() => (
 }
 
 .profile-summary__avatar {
+  --avatar-inner-radius: 18px;
   position: relative;
   display: grid;
+  box-sizing: border-box;
   width: 70px;
   height: 70px;
   flex: 0 0 70px;
@@ -91,19 +95,26 @@ const avatarText = computed(() => (
   overflow: visible;
 }
 
-.profile-summary__avatar img,
-.profile-summary__avatar b {
-  width: 100%;
-  height: 100%;
-  border-radius: 18px;
+.profile-summary__avatar-image {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--avatar-inner-radius);
 }
 
-.profile-summary__avatar img {
+.profile-summary__avatar-image img,
+.profile-summary__avatar-image b {
   display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.profile-summary__avatar-image img {
+  max-width: 100%;
   object-fit: cover;
 }
 
-.profile-summary__avatar b {
+.profile-summary__avatar-image b {
   display: grid;
   place-items: center;
   font-size: inherit;
@@ -219,6 +230,7 @@ const avatarText = computed(() => (
   }
 
   .profile-summary__avatar {
+    --avatar-inner-radius: 14px;
     width: 56px;
     height: 56px;
     flex-basis: 56px;

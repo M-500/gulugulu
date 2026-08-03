@@ -34,6 +34,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err)
 	}
 
+	err = db.AutoMigrate(userrepo.User{})
+	if err != nil {
+		panic(err)
+	}
+
 	redisClient, err := redisx.New(c.CacheRedis)
 	if err != nil {
 		_ = gormx.Close(db)
