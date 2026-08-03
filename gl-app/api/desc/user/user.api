@@ -27,7 +27,8 @@ type (
 
     UpdateUserProfileReq {
         NickName string `json:"nickName"`
-
+        Bio string  `json:"bio,optional"`  // 用户简介
+        Sex string `json:"sex,optional"`
     }
 
     UpdateUserInfoReq {

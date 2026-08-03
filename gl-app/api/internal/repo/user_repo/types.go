@@ -18,6 +18,7 @@ type User struct {
 	LastLoginAt *time.Time `gorm:"column:last_login_at;comment:最后登录时间" json:"lastLoginAt,omitempty"`
 	IPAddress   string     `gorm:"column:ip_address;comment:用户IP地址;type:varchar(64)" json:"ipAddress"`
 	Bio         string     `gorm:"column:bio;comment:用户简介;type:varchar(256)" json:"bio"`
+	BothDay     *time.Time `gorm:"column:both_day;comment:用户生日" json:"bothDay,omitempty"`
 }
 
 func (User) TableName() string {

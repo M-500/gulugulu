@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Button as VanButton, Popup as VanPopup } from 'vant'
 
 import Avatar from '@/components/Avatar/avatar.vue'
@@ -178,6 +178,36 @@ function nextImage () {
   if (!images.value.length) return
   activeIndex.value = (activeIndex.value + 1) % images.value.length
 }
+
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(target.closest('input, textarea, select')) || target.isContentEditable
+}
+
+// 普通详情和全屏预览共用同一套图片索引，保证键盘与按钮切换结果一致。
+function handleImageKeydown(event) {
+  if (!props.show || isVideo.value || images.value.length <= 1) return
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+  if (!fullscreen.value && isEditableTarget(event.target)) return
+
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    event.stopPropagation()
+    prevImage()
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    event.stopPropagation()
+    nextImage()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleImageKeydown, true)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleImageKeydown, true)
+})
 
 function updateImageRatio(event) {
   const image = event.target
