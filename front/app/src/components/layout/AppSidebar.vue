@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { showToast } from 'vant'
 
 import Avatar from '@/components/Avatar/avatar.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
@@ -8,7 +9,47 @@ import { useAuthStore } from '@/stores/auth'
 
 const emit = defineEmits(['login-request'])
 const authStore = useAuthStore()
+const moreMenuRef = ref(null)
+const showMoreMenu = ref(false)
 const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => item.key !== 'profile'))
+const visibleSecondaryNavItems = computed(() => secondaryNavItems.filter((item) => item.key !== 'more'))
+
+onMounted(() => {
+  document.addEventListener('pointerdown', handleOutsidePointerDown)
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleOutsidePointerDown)
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+function toggleMoreMenu() {
+  showMoreMenu.value = !showMoreMenu.value
+}
+
+function handleLogout() {
+  authStore.logout()
+  showMoreMenu.value = false
+  showToast('已退出登录')
+}
+
+function handleLogin() {
+  showMoreMenu.value = false
+  emit('login-request')
+}
+
+function handleOutsidePointerDown(event) {
+  if (showMoreMenu.value && !moreMenuRef.value?.contains(event.target)) {
+    showMoreMenu.value = false
+  }
+}
+
+function handleKeydown(event) {
+  if (event.key === 'Escape') {
+    showMoreMenu.value = false
+  }
+}
 </script>
 
 <template>
@@ -78,8 +119,60 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
       class="sidebar-nav sidebar-nav-bottom"
       aria-label="辅助导航"
     >
+      <div
+        ref="moreMenuRef"
+        class="sidebar-more"
+      >
+        <button
+          type="button"
+          class="sidebar-link sidebar-more__trigger"
+          aria-haspopup="menu"
+          :aria-expanded="showMoreMenu"
+          @click="toggleMoreMenu"
+        >
+          <span class="sidebar-icon">
+            <BaseIcon
+              name="menu"
+              size="20"
+            />
+          </span>
+          <span>更多</span>
+        </button>
+        <div
+          v-if="showMoreMenu"
+          class="sidebar-more__menu"
+          role="menu"
+        >
+          <button
+            v-if="authStore.isLoggedIn"
+            type="button"
+            class="sidebar-more__action sidebar-more__action--danger"
+            role="menuitem"
+            @click="handleLogout"
+          >
+            <BaseIcon
+              name="logout"
+              size="18"
+            />
+            <span>退出登录</span>
+          </button>
+          <button
+            v-else
+            type="button"
+            class="sidebar-more__action"
+            role="menuitem"
+            @click="handleLogin"
+          >
+            <BaseIcon
+              name="user"
+              size="18"
+            />
+            <span>登录</span>
+          </button>
+        </div>
+      </div>
       <RouterLink
-        v-for="item in secondaryNavItems"
+        v-for="item in visibleSecondaryNavItems"
         :key="item.key"
         class="sidebar-link"
         to="/"
@@ -135,6 +228,61 @@ const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => i
 
 .sidebar-nav-bottom {
   margin-top: auto;
+}
+
+.sidebar-more {
+  position: relative;
+}
+
+.sidebar-more__trigger {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.sidebar-more__menu {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 10px);
+  left: 0;
+  border: 1px solid #eceef2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(30, 32, 38, 0.14);
+  padding: 7px;
+}
+
+.sidebar-more__action {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #30333a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.sidebar-more__action:hover {
+  background: var(--color-fill);
+}
+
+.sidebar-more__action--danger {
+  color: #e5484d;
+}
+
+.sidebar-more__action--danger:hover {
+  background: #fff1f2;
 }
 
 .sidebar-link {

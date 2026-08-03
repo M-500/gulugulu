@@ -81,12 +81,12 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 
 	if existed, findErr := l.svcCtx.WorkRepo.FindByIdempotencyKey(l.ctx, userID, payload.IdempotencyKey); findErr == nil {
 		if existed.Type == "image" && existed.ProcessStatus != "succeeded" {
-			if promoteErr := promoteImageWork(l.ctx, l.svcCtx, existed.ID); promoteErr != nil {
-				markImagePromotionFailed(l.ctx, l.svcCtx, existed.ID, promoteErr)
+			if promoteErr := promoteImageWork(l.ctx, l.svcCtx, int64(existed.ID)); promoteErr != nil {
+				markImagePromotionFailed(l.ctx, l.svcCtx, int64(existed.ID), promoteErr)
 				return nil, promoteErr
 			}
 			return &types.CreateWorkResp{
-				WorkId:        existed.ID,
+				WorkId:        int64(existed.ID),
 				ProcessStatus: "succeeded",
 				ReviewStatus:  "pending_review",
 				PublishStatus: "pending",
@@ -95,12 +95,12 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 		// 数据库事务已成功但Kafka曾短暂不可用时，前端可使用同一个
 		// Idempotency-Key安全重试。只有消息成功写入Kafka才返回成功。
 		if existed.ProcessStatus == "pending" {
-			if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, existed.ID, 0); queueErr != nil {
+			if queueErr := l.svcCtx.MediaQueue.PublishProcessWork(l.ctx, int64(existed.ID), 0); queueErr != nil {
 				return nil, queueErr
 			}
 		}
 		return &types.CreateWorkResp{
-			WorkId:        existed.ID,
+			WorkId:        int64(existed.ID),
 			ProcessStatus: existed.ProcessStatus,
 			ReviewStatus:  existed.ReviewStatus,
 			PublishStatus: existed.PublishStatus,

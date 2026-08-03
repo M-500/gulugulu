@@ -90,7 +90,7 @@ func (r *workRepoImpl) Create(ctx context.Context, input CreateWorkInput) (int64
 		if err := tx.Create(&work).Error; err != nil {
 			return fmt.Errorf("创建作品失败: %w", err)
 		}
-		workID = work.ID
+		workID = int64(work.ID)
 
 		relations := make([]WorkAsset, 0, len(input.Assets)+1)
 		assetIDs := make([]int64, 0, len(input.Assets)+1)
@@ -127,7 +127,7 @@ func (r *workRepoImpl) Create(ctx context.Context, input CreateWorkInput) (int64
 					return err
 				}
 			}
-			relation := WorkTopic{WorkID: workID, TopicID: itemTopic.ID, Sort: item.Sort}
+			relation := WorkTopic{WorkID: workID, TopicID: int64(itemTopic.ID), Sort: item.Sort}
 			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&relation).Error; err != nil {
 				return err
 			}
@@ -158,8 +158,8 @@ func (r *workRepoImpl) ListReadyAssets(ctx context.Context, workID int64) ([]Ass
 
 func (r *workRepoImpl) ListTopics(ctx context.Context, workID int64) ([]TopicView, error) {
 	var rows []TopicView
-	err := r.db.WithContext(ctx).Table("work_Topic AS wt").Select("t.id, t.name").
-		Joins("JOIN Topic AS t ON t.id = wt.Topic_id").Where("wt.work_id = ?", workID).
+	err := r.db.WithContext(ctx).Table("work_topic AS wt").Select("t.id, t.name").
+		Joins("JOIN topic AS t ON t.id = wt.topic_id").Where("wt.work_id = ?", workID).
 		Order("wt.sort, wt.id").Scan(&rows).Error
 	return rows, err
 }
