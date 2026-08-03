@@ -92,13 +92,13 @@ func (r *workRepoImpl) Create(ctx context.Context, input CreateWorkInput) (int64
 		}
 		workID = work.ID
 
-		relations := make([]workAsset, 0, len(input.Assets)+1)
+		relations := make([]WorkAsset, 0, len(input.Assets)+1)
 		assetIDs := make([]int64, 0, len(input.Assets)+1)
 		for _, item := range input.Assets {
-			relations = append(relations, workAsset{WorkID: workID, MediaAssetID: item.MediaID, Role: input.Type, Sort: item.Sort})
+			relations = append(relations, WorkAsset{WorkID: workID, MediaAssetID: item.MediaID, Role: input.Type, Sort: item.Sort})
 			assetIDs = append(assetIDs, item.MediaID)
 		}
-		relations = append(relations, workAsset{WorkID: workID, MediaAssetID: input.CoverAssetID, Role: "cover", Sort: 0})
+		relations = append(relations, WorkAsset{WorkID: workID, MediaAssetID: input.CoverAssetID, Role: "cover", Sort: 0})
 		assetIDs = append(assetIDs, input.CoverAssetID)
 		if err := tx.Create(&relations).Error; err != nil {
 			return err
@@ -114,7 +114,7 @@ func (r *workRepoImpl) Create(ctx context.Context, input CreateWorkInput) (int64
 				continue
 			}
 			normalized := strings.ToLower(name)
-			itemTopic := topic{Name: name, NormalizedName: normalized}
+			itemTopic := Topic{Name: name, NormalizedName: normalized}
 			if err := tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "normalized_name"}},
 				DoNothing: true,
@@ -127,7 +127,7 @@ func (r *workRepoImpl) Create(ctx context.Context, input CreateWorkInput) (int64
 					return err
 				}
 			}
-			relation := workTopic{WorkID: workID, TopicID: itemTopic.ID, Sort: item.Sort}
+			relation := WorkTopic{WorkID: workID, TopicID: itemTopic.ID, Sort: item.Sort}
 			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&relation).Error; err != nil {
 				return err
 			}
@@ -158,8 +158,8 @@ func (r *workRepoImpl) ListReadyAssets(ctx context.Context, workID int64) ([]Ass
 
 func (r *workRepoImpl) ListTopics(ctx context.Context, workID int64) ([]TopicView, error) {
 	var rows []TopicView
-	err := r.db.WithContext(ctx).Table("work_topic AS wt").Select("t.id, t.name").
-		Joins("JOIN topic AS t ON t.id = wt.topic_id").Where("wt.work_id = ?", workID).
+	err := r.db.WithContext(ctx).Table("work_Topic AS wt").Select("t.id, t.name").
+		Joins("JOIN Topic AS t ON t.id = wt.Topic_id").Where("wt.work_id = ?", workID).
 		Order("wt.sort, wt.id").Scan(&rows).Error
 	return rows, err
 }

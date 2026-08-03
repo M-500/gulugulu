@@ -34,7 +34,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(userrepo.User{})
+	err = db.AutoMigrate(&userrepo.User{},
+		&mediarepo.MediaAsset{},
+		&mediarepo.ProcessTask{},
+		&workrepo.Work{},
+		&workrepo.WorkAsset{},
+		&workrepo.Topic{},
+		&workrepo.WorkTopic{},
+	)
 	if err != nil {
 		panic(err)
 	}

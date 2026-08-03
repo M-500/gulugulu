@@ -33,7 +33,7 @@ type Work struct {
 
 func (Work) TableName() string { return "work" }
 
-type workAsset struct {
+type WorkAsset struct {
 	ID           int64     `gorm:"column:id;primaryKey;autoIncrement"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
 	WorkID       int64     `gorm:"column:work_id"`
@@ -42,9 +42,9 @@ type workAsset struct {
 	Sort         int64     `gorm:"column:sort"`
 }
 
-func (workAsset) TableName() string { return "work_asset" }
+func (WorkAsset) TableName() string { return "work_asset" }
 
-type topic struct {
+type Topic struct {
 	ID             int64     `gorm:"column:id;primaryKey;autoIncrement"`
 	CreatedAt      time.Time `gorm:"column:created_at"`
 	Name           string    `gorm:"column:name"`
@@ -53,9 +53,9 @@ type topic struct {
 	CommentNum     int64     `gorm:"column:comment_num"`
 }
 
-func (topic) TableName() string { return "topic" }
+func (Topic) TableName() string { return "topic" }
 
-type workTopic struct {
+type WorkTopic struct {
 	ID        int64     `gorm:"column:id;primaryKey;autoIncrement"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	WorkID    int64     `gorm:"column:work_id"`
@@ -63,7 +63,7 @@ type workTopic struct {
 	Sort      int64     `gorm:"column:sort"`
 }
 
-func (workTopic) TableName() string { return "work_topic" }
+func (WorkTopic) TableName() string { return "work_topic" }
 
 type collection struct {
 	ID        int64          `gorm:"column:id;primaryKey;autoIncrement"`

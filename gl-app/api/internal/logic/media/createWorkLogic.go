@@ -115,7 +115,7 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	defer func() {
 		if cleanupCover {
 			_ = l.svcCtx.MinioClient.RemoveObject(context.Background(), coverAsset.Bucket, coverAsset.ObjectKey, minio.RemoveObjectOptions{})
-			_ = l.svcCtx.MediaRepo.DeleteAsset(context.Background(), coverAsset.ID)
+			_ = l.svcCtx.MediaRepo.DeleteAsset(context.Background(), int64(coverAsset.ID))
 		}
 	}()
 
@@ -139,7 +139,7 @@ func (l *CreateWorkLogic) CreateWork(req *types.CreateWorkReq, cover multipart.F
 	input := workrepo.CreateWorkInput{
 		UserID: userID, Type: payload.Type, Title: strings.TrimSpace(payload.Title), Content: payload.Content,
 		Visibility: payload.Visibility.Type, VisibilityUserIDs: visibilityUsers, CollectionID: payload.CollectionID,
-		Original: payload.Original, CoverAssetID: coverAsset.ID, ScheduledAt: scheduledAt, IdempotencyKey: payload.IdempotencyKey,
+		Original: payload.Original, CoverAssetID: int64(coverAsset.ID), ScheduledAt: scheduledAt, IdempotencyKey: payload.IdempotencyKey,
 		Assets: make([]workrepo.CreateAssetInput, 0, len(payload.Assets)),
 		Topics: make([]workrepo.CreateTopicInput, 0, len(payload.Topics)),
 	}

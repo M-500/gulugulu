@@ -60,7 +60,7 @@ func (r *mediaRepoImpl) DeleteAsset(ctx context.Context, assetID int64) error {
 }
 
 func (r *mediaRepoImpl) RecoverStaleTasks(ctx context.Context, before time.Time) error {
-	return r.db.WithContext(ctx).Model(&processTask{}).
+	return r.db.WithContext(ctx).Model(&ProcessTask{}).
 		Where("status = ? AND updated_at < ?", "processing", before).
 		Updates(map[string]any{"status": "pending", "stage": "queued"}).Error
 }
@@ -68,7 +68,7 @@ func (r *mediaRepoImpl) RecoverStaleTasks(ctx context.Context, before time.Time)
 func (r *mediaRepoImpl) ClaimTask(ctx context.Context, workID int64) (bool, error) {
 	claimed := false
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&processTask{}).
+		result := tx.Model(&ProcessTask{}).
 			Where("work_id = ? AND status IN ?", workID, []string{"pending", "failed"}).
 			Updates(map[string]any{"status": "processing", "stage": "preparing", "progress": 5, "error_message": ""})
 		if result.Error != nil || result.RowsAffected == 0 {
@@ -87,7 +87,7 @@ func (r *mediaRepoImpl) StartImagePromotion(ctx context.Context, workID int64) e
 			Updates(map[string]any{"process_status": "processing", "review_status": "waiting_process"}).Error; err != nil {
 			return err
 		}
-		return tx.Model(&processTask{}).Where("work_id = ?", workID).
+		return tx.Model(&ProcessTask{}).Where("work_id = ?", workID).
 			Updates(map[string]any{"status": "processing", "stage": "promoting_images", "progress": 10, "error_message": ""}).Error
 	})
 }
@@ -114,7 +114,7 @@ func (r *mediaRepoImpl) listAssets(ctx context.Context, workID int64, roles []st
 }
 
 func (r *mediaRepoImpl) UpdateTaskProgress(ctx context.Context, workID int64, stage string, progress int64) error {
-	return r.db.WithContext(ctx).Model(&processTask{}).Where("work_id = ?", workID).
+	return r.db.WithContext(ctx).Model(&ProcessTask{}).Where("work_id = ?", workID).
 		Updates(map[string]any{"stage": stage, "progress": progress}).Error
 }
 
@@ -131,7 +131,7 @@ func (r *mediaRepoImpl) MarkVideoAssetReady(ctx context.Context, assetID int64, 
 
 func (r *mediaRepoImpl) CompleteProcessing(ctx context.Context, workID int64) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&processTask{}).Where("work_id = ?", workID).
+		if err := tx.Model(&ProcessTask{}).Where("work_id = ?", workID).
 			Updates(map[string]any{"status": "succeeded", "stage": "waiting_review", "progress": 100, "error_message": ""}).Error; err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func (r *mediaRepoImpl) CompleteImagePromotion(ctx context.Context, workID int64
 				return err
 			}
 		}
-		if err := tx.Model(&processTask{}).Where("work_id = ?", workID).
+		if err := tx.Model(&ProcessTask{}).Where("work_id = ?", workID).
 			Updates(map[string]any{"status": "succeeded", "stage": "waiting_review", "progress": 100, "error_message": ""}).Error; err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (r *mediaRepoImpl) CompleteImagePromotion(ctx context.Context, workID int64
 
 func (r *mediaRepoImpl) FailProcessing(ctx context.Context, workID int64, message string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&processTask{}).Where("work_id = ?", workID).
+		if err := tx.Model(&ProcessTask{}).Where("work_id = ?", workID).
 			Updates(map[string]any{"status": "failed", "stage": "failed", "error_message": message}).Error; err != nil {
 			return err
 		}
@@ -201,7 +201,7 @@ func (r *mediaRepoImpl) RetryFailedWork(ctx context.Context, workID, userID int6
 			Updates(map[string]any{"process_status": "pending", "review_status": "waiting_process"}).Error; err != nil {
 			return err
 		}
-		result := tx.Model(&processTask{}).Where("work_id = ?", workID).
+		result := tx.Model(&ProcessTask{}).Where("work_id = ?", workID).
 			Updates(map[string]any{"status": "pending", "stage": "queued", "progress": 0,
 				"error_message": "", "retry_count": gorm.Expr("retry_count + 1")})
 		if result.Error != nil {

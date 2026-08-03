@@ -7,31 +7,28 @@ import (
 )
 
 type MediaAsset struct {
-	ID              int64          `gorm:"column:id;primaryKey;autoIncrement"`
-	CreatedAt       time.Time      `gorm:"column:created_at"`
-	UpdatedAt       time.Time      `gorm:"column:updated_at"`
-	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at"`
-	UserID          int64          `gorm:"column:user_id"`
-	ResourceType    string         `gorm:"column:resource_type"`
-	Bucket          string         `gorm:"column:bucket"`
-	ObjectKey       string         `gorm:"column:object_key"`
-	OriginName      string         `gorm:"column:origin_name"`
-	ContentType     string         `gorm:"column:content_type"`
-	Ext             string         `gorm:"column:ext"`
-	FileSize        int64          `gorm:"column:file_size"`
-	Status          string         `gorm:"column:status"`
-	FormalBucket    string         `gorm:"column:formal_bucket"`
-	FormalObjectKey string         `gorm:"column:formal_object_key"`
-	DurationMs      int64          `gorm:"column:duration_ms"`
-	Width           int64          `gorm:"column:width"`
-	Height          int64          `gorm:"column:height"`
-	BoundWorkID     int64          `gorm:"column:bound_work_id"`
-	ProcessError    string         `gorm:"column:process_error"`
+	gorm.Model
+	UserID          int64  `gorm:"column:user_id"`
+	ResourceType    string `gorm:"column:resource_type"`
+	Bucket          string `gorm:"column:bucket"`
+	ObjectKey       string `gorm:"column:object_key"`
+	OriginName      string `gorm:"column:origin_name"`
+	ContentType     string `gorm:"column:content_type"`
+	Ext             string `gorm:"column:ext"`
+	FileSize        int64  `gorm:"column:file_size"`
+	Status          string `gorm:"column:status"`
+	FormalBucket    string `gorm:"column:formal_bucket"`
+	FormalObjectKey string `gorm:"column:formal_object_key"`
+	DurationMs      int64  `gorm:"column:duration_ms"`
+	Width           int64  `gorm:"column:width"`
+	Height          int64  `gorm:"column:height"`
+	BoundWorkID     int64  `gorm:"column:bound_work_id"`
+	ProcessError    string `gorm:"column:process_error"`
 }
 
 func (MediaAsset) TableName() string { return "media_asset" }
 
-type processTask struct {
+type ProcessTask struct {
 	ID           int64     `gorm:"column:id;primaryKey;autoIncrement"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
 	UpdatedAt    time.Time `gorm:"column:updated_at"`
@@ -44,7 +41,7 @@ type processTask struct {
 	ErrorMessage string    `gorm:"column:error_message"`
 }
 
-func (processTask) TableName() string { return "media_process_task" }
+func (ProcessTask) TableName() string { return "media_process_task" }
 
 type workState struct {
 	ID            int64          `gorm:"column:id;primaryKey"`

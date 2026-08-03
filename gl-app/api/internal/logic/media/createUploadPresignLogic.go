@@ -108,7 +108,7 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 	}
 
 	return &types.CreateUploadPresignResp{
-		MediaId:    asset.ID,
+		MediaId:    int64(asset.ID),
 		Bucket:     bucket,
 		ObjectKey:  objectKey,
 		UploadUrl:  uploadUrl.String(),

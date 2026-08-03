@@ -71,7 +71,7 @@ func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (resp
 	}
 
 	return &types.CompleteUploadResp{
-		MediaId:    asset.ID,
+		MediaId:    int64(asset.ID),
 		Status:     asset.Status,
 		Bucket:     asset.Bucket,
 		ObjectKey:  asset.ObjectKey,
