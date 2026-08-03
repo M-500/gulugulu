@@ -10,7 +10,7 @@
 
 ## 依赖注入
 
-MySQL 的 `*gorm.DB` 和 Redis 的 `redis.UniversalClient` 在 `api/internal/svc/serviceContext.go` 中统一初始化。ServiceContext 通过构造函数把它们注入 DAO、Cache 和 Repo，业务层只持有 Repo 接口。
+MySQL 和 Redis 的客户端构造分别封装在 `pkg/gormx`、`pkg/redisx`。`ServiceContext` 只负责调用统一构造函数并把客户端注入 DAO、Cache 和 Repo，业务层只持有 Repo 接口。
 
 ## 缓存策略
 

@@ -2,20 +2,19 @@ package svc
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	redisv9 "github.com/redis/go-redis/v9"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"gl-app/api/internal/config"
 	mediaqueue "gl-app/api/internal/queue"
 	mediarepo "gl-app/api/internal/repo/media_repo"
 	userrepo "gl-app/api/internal/repo/user_repo"
 	workrepo "gl-app/api/internal/repo/work_repo"
+	"gl-app/pkg/gormx"
+	"gl-app/pkg/redisx"
 )
 
 type ServiceContext struct {
@@ -30,20 +29,23 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	db, err := gorm.Open(mysql.Open(c.Mysql.DataSource), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
-	})
+	db, err := gormx.NewMySQL(c.Mysql)
 	if err != nil {
-		panic(fmt.Errorf("初始化GORM失败: %w", err))
+		panic(err)
 	}
-	configureConnectionPool(db, c)
 
-	redisClient := newRedisClient(c)
+	redisClient, err := redisx.New(c.CacheRedis)
+	if err != nil {
+		_ = gormx.Close(db)
+		panic(err)
+	}
 	minioClient, err := minio.New(c.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(c.Minio.AccessKeyID, c.Minio.SecretAccessKey, ""),
 		Secure: c.Minio.UseSSL,
 	})
 	if err != nil {
+		_ = redisx.Close(redisClient)
+		_ = gormx.Close(db)
 		panic(fmt.Errorf("初始化MinIO客户端失败: %w", err))
 	}
 
@@ -62,47 +64,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 }
 
-func configureConnectionPool(db *gorm.DB, c config.Config) {
-	sqlDB, err := db.DB()
-	if err != nil {
-		panic(fmt.Errorf("获取GORM底层连接池失败: %w", err))
-	}
-	sqlDB.SetMaxIdleConns(c.Mysql.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(c.Mysql.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(time.Duration(c.Mysql.ConnMaxLife) * time.Second)
-}
-
-func newRedisClient(c config.Config) redisv9.UniversalClient {
-	if len(c.CacheRedis) == 0 {
-		panic("CacheRedis至少需要配置一个Redis节点")
-	}
-	addresses := make([]string, 0, len(c.CacheRedis))
-	for _, node := range c.CacheRedis {
-		addresses = append(addresses, node.Host)
-	}
-	if len(addresses) > 1 || c.CacheRedis[0].Type == "cluster" {
-		return redisv9.NewClusterClient(&redisv9.ClusterOptions{
-			Addrs:    addresses,
-			Password: c.CacheRedis[0].Pass,
-		})
-	}
-	return redisv9.NewClient(&redisv9.Options{
-		Addr:     addresses[0],
-		Password: c.CacheRedis[0].Pass,
-	})
-}
-
 // Close 统一释放 ServiceContext 持有的长连接资源。
 func (s *ServiceContext) Close() {
 	if s.MediaQueue != nil {
 		_ = s.MediaQueue.Close()
 	}
 	if s.RedisClient != nil {
-		_ = s.RedisClient.Close()
+		_ = redisx.Close(s.RedisClient)
 	}
 	if s.GormDB != nil {
-		if sqlDB, err := s.GormDB.DB(); err == nil {
-			_ = sqlDB.Close()
-		}
+		_ = gormx.Close(s.GormDB)
 	}
 }

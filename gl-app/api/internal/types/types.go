@@ -242,7 +242,7 @@ type RecommendWorkItem struct {
 }
 
 type RecommendWorkListReq struct {
-	UserID   int64 `form:"userId"`
+	UserID   int64 `form:"userId,optional"`
 	Page     int64 `form:"page,optional"`
 	PageSize int64 `form:"pageSize,optional"`
 }

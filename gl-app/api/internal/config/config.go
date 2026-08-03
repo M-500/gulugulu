@@ -1,22 +1,18 @@
 package config
 
 import (
+	"gl-app/pkg/gormx"
+	"gl-app/pkg/redisx"
+
 	"github.com/zeromicro/go-queue/kq"
-	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/rest"
 )
 
 type Config struct {
 	rest.RestConf
 
-	Mysql struct {
-		DataSource   string
-		MaxIdleConns int `json:",default=10"`
-		MaxOpenConns int `json:",default=100"`
-		ConnMaxLife  int `json:",default=3600"`
-	}
-
-	CacheRedis cache.CacheConf
+	Mysql      gormx.MySQLConfig
+	CacheRedis redisx.Config
 
 	Salt string // 加密用的盐
 

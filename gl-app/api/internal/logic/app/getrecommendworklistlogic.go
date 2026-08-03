@@ -30,6 +30,7 @@ func (l *GetRecommendWorkListLogic) GetRecommendWorkList(req *types.RecommendWor
 		l.Errorf("查询App推荐作品列表失败: %v", err)
 		return nil, fmt.Errorf("查询推荐作品失败")
 	}
+	// 如果有传用户ID，那么就应该对特定用户推荐特定的作品
 	hasMore := int64(len(rows)) > pageSize
 	if hasMore {
 		rows = rows[:pageSize]

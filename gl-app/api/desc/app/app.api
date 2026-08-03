@@ -38,7 +38,7 @@ type (
 	}
 
 	RecommendWorkListReq {
-		UserID int64 	`form:"userId"`
+		UserID int64 	`form:"userId,optional"`
 		Page     int64 `form:"page,optional"`
 		PageSize int64 `form:"pageSize,optional"`
 	}
