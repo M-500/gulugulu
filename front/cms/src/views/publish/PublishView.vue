@@ -76,6 +76,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { completeUpload, createUploadPresign, uploadToObjectStorage } from '@/api/media'
 import { createWork } from '@/api/works'
+import { MAX_IMAGE_ASSETS } from '@/constants/publish'
 import { usePublishDraftStore } from '@/stores/publishDrafts'
 
 import PublishAssetsCard from './components/PublishAssetsCard.vue'
@@ -187,7 +188,7 @@ async function replaceFiles(event) {
 }
 
 async function appendImageFiles(event) {
-  const remaining = 19 - currentDraft.value.assets.length
+  const remaining = MAX_IMAGE_ASSETS - currentDraft.value.assets.length
   const files = Array.from(event.target.files).filter((file) => file.type.startsWith('image/')).slice(0, remaining)
   event.target.value = ''
 
@@ -226,7 +227,7 @@ async function createDraftFromFiles(fileList, draftType = activeType.value) {
   const isImageWork = draftType === 'image'
   const files = Array.from(fileList)
     .filter((file) => isImageWork ? file.type.startsWith('image/') : file.type.startsWith('video/'))
-    .slice(0, isImageWork ? 19 : 1)
+    .slice(0, isImageWork ? MAX_IMAGE_ASSETS : 1)
 
   if (!files.length) {
     showMessage(isImageWork ? '图片作品只能上传图片。' : '视频作品只能上传一个视频。', 'warning')
@@ -392,8 +393,8 @@ function validatePublishForm() {
   if (draft.type === 'video' && draft.assets.length !== 1) {
     throw new Error('视频作品必须且只能包含一个视频')
   }
-  if (draft.type === 'image' && (draft.assets.length < 1 || draft.assets.length > 19)) {
-    throw new Error('图片作品必须包含1到19张图片')
+  if (draft.type === 'image' && (draft.assets.length < 1 || draft.assets.length > MAX_IMAGE_ASSETS)) {
+    throw new Error(`图片作品必须包含1到${MAX_IMAGE_ASSETS}张图片`)
   }
   if (draft.type === 'image' && !draft.assets.some((asset) => asset.assetId === draft.coverAssetId && asset.kind === 'image')) {
     throw new Error('请选择一张已上传图片作为封面')

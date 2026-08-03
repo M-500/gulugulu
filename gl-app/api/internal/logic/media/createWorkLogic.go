@@ -29,6 +29,8 @@ type CreateWorkLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
+const maxImageAssets = 500
+
 // 发布作品
 func NewCreateWorkLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateWorkLogic {
 	return &CreateWorkLogic{
@@ -247,8 +249,8 @@ func validateCreateWorkPayload(payload *createWorkPayload) error {
 	if payload.Type == "video" && len(payload.Assets) != 1 {
 		return fmt.Errorf("视频作品必须且只能包含一个视频")
 	}
-	if payload.Type == "image" && (len(payload.Assets) < 1 || len(payload.Assets) > 19) {
-		return fmt.Errorf("图片作品必须包含1到19张图片")
+	if payload.Type == "image" && (len(payload.Assets) < 1 || len(payload.Assets) > maxImageAssets) {
+		return fmt.Errorf("图片作品必须包含1到%d张图片", maxImageAssets)
 	}
 	seen := make(map[int64]struct{}, len(payload.Assets))
 	for _, asset := range payload.Assets {

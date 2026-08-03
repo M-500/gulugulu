@@ -27,6 +27,7 @@ type (
 
     UpdateUserProfileReq {
         NickName string `json:"nickName"`
+
     }
 
     UpdateUserInfoReq {

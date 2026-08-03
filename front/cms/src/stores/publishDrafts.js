@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 
+import { MAX_IMAGE_ASSETS } from '@/constants/publish'
+
 const DB_NAME = 'gulugulu_publish_cache'
 const DB_VERSION = 1
 const DRAFT_STORE = 'drafts'
@@ -285,7 +287,7 @@ export const usePublishDraftStore = defineStore('publishDrafts', {
         return
       }
 
-      const remaining = Math.max(0, 19 - this.currentDraft.assets.length)
+      const remaining = Math.max(0, MAX_IMAGE_ASSETS - this.currentDraft.assets.length)
       const selectedFiles = Array.from(files).filter((file) => file.type.startsWith('image/')).slice(0, remaining)
       const startOrder = this.currentDraft.assets.length
       const assets = selectedFiles.map((file, index) => ({

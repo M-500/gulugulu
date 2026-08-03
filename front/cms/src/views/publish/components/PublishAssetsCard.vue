@@ -2,11 +2,11 @@
   <section class="editor-card asset-card">
     <template v-if="type === 'image'">
       <div class="editor-card__header image-editor__header">
-        <div><h2>图片编辑</h2><span>{{ assets.length }}/19</span></div>
+        <div><h2>图片编辑</h2><span>{{ assets.length }}/{{ MAX_IMAGE_ASSETS }}</span></div>
         <button class="cover-advice" type="button">◕ 获取封面建议</button>
       </div>
       <div class="image-editor__grid">
-        <label v-if="assets.length < 19" class="image-editor__add">
+        <label v-if="assets.length < MAX_IMAGE_ASSETS" class="image-editor__add">
           <input accept="image/*" multiple type="file" @change="$emit('add-images', $event)">
           <span>＋</span><small>添加图片</small>
         </label>
@@ -16,7 +16,7 @@
           <button type="button" aria-label="删除图片" @click="$emit('delete-image', asset.assetId)">×</button>
         </div>
       </div>
-      <p v-if="assets.length >= 19" class="image-editor__limit">已达到 19 张图片上限</p>
+      <p v-if="assets.length >= MAX_IMAGE_ASSETS" class="image-editor__limit">已达到 {{ MAX_IMAGE_ASSETS }} 张图片上限</p>
     </template>
 
     <template v-else>
@@ -36,6 +36,8 @@
 </template>
 
 <script setup>
+import { MAX_IMAGE_ASSETS } from '@/constants/publish'
+
 defineProps({ type: { type: String, required: true }, accept: { type: String, required: true }, assets: { type: Array, default: () => [] } })
 defineEmits(['replace', 'add-images', 'delete-image'])
 function formatSize(size) {
