@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Button as VanButton, Popup as VanPopup } from 'vant'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Button as VanButton, Popup as VanPopup, showToast } from 'vant'
 
 import Avatar from '@/components/Avatar/avatar.vue'
 import AuthorWrapper from '@/components/AuthorWrapper/authWrapper.vue'
@@ -8,6 +8,7 @@ import CommentItem from '@/components/CommentItem/commentItem.vue'
 import HlsVideoPlayer from '@/components/HlsVideoPlayer.vue'
 import LikeAction from '@/components/LikeAction/likeAction.vue'
 import { getAppWorkDetail } from '@/services/workService'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   show: {
@@ -27,7 +28,16 @@ const imageRatio = ref(0.75)
 const detail = ref(null)
 const loading = ref(false)
 const loadError = ref('')
+const commentInput = ref(null)
+const composerOpen = ref(false)
+const commentDraft = ref('')
+const replyContext = ref(null)
+const localComments = ref([])
+const localReplies = ref([])
+const localCommentCount = ref(0)
+const authStore = useAuthStore()
 let requestVersion = 0
+let localCommentSequence = 0
 
 const work = computed(() => {
   if (detail.value) return detail.value
@@ -137,13 +147,37 @@ const comments = computed(() => [
     replies: []
   }
 ])
+const displayComments = computed(() => {
+  const roots = [...localComments.value, ...comments.value]
+  return roots.map((comment) => ({
+    ...comment,
+    replies: [
+      ...(comment.replies || []),
+      ...localReplies.value
+        .filter((item) => String(item.rootId) === String(comment.id))
+        .map((item) => item.comment)
+    ]
+  }))
+})
+const displayCommentCount = computed(() => Number(work.value.commentCount || 0) + localCommentCount.value)
+const canSubmitComment = computed(() => Boolean(commentDraft.value.trim()))
+const replyAuthorName = computed(() => (
+  replyContext.value?.target?.author?.nickname
+  || replyContext.value?.target?.author?.username
+  || '用户'
+))
+const commentPlaceholder = computed(() => (
+  replyContext.value ? `回复 ${replyAuthorName.value}` : '说点什么...'
+))
 
 watch([() => props.show, () => props.note?.id], ([show, workId], previous) => {
   const previousWorkId = previous?.[1]
   if (workId !== previousWorkId) {
     detail.value = null
     loadError.value = ''
+    resetLocalComments()
   }
+  cancelCommentComposer()
   activeIndex.value = 0
   fullscreen.value = false
   imageRatio.value = props.note?.isVideo ? 16 / 9 : 0.75
@@ -177,6 +211,72 @@ function prevImage () {
 function nextImage () {
   if (!images.value.length) return
   activeIndex.value = (activeIndex.value + 1) % images.value.length
+}
+
+function openCommentComposer() {
+  replyContext.value = null
+  composerOpen.value = true
+  focusCommentInput()
+}
+
+function openReplyComposer(context) {
+  replyContext.value = context
+  composerOpen.value = true
+  focusCommentInput()
+}
+
+function cancelCommentComposer() {
+  composerOpen.value = false
+  commentDraft.value = ''
+  replyContext.value = null
+}
+
+function focusCommentInput() {
+  nextTick(() => commentInput.value?.focus())
+}
+
+function insertCommentText(value) {
+  commentDraft.value += value
+  focusCommentInput()
+}
+
+function submitComment() {
+  const content = commentDraft.value.trim()
+  if (!content) return
+  if (!authStore.isLoggedIn) {
+    emit('login-request')
+    return
+  }
+
+  const comment = {
+    id: `local-${Date.now()}-${++localCommentSequence}`,
+    author: {
+      nickname: authStore.user?.nickName || '我',
+      avatar: authStore.user?.avatarUrl || '',
+      isAuthor: Number(authStore.user?.userId) === Number(work.value.authorId)
+    },
+    content,
+    meta: '刚刚',
+    likes: 0,
+    replies: []
+  }
+  if (replyContext.value) {
+    localReplies.value.push({
+      rootId: replyContext.value.root.id,
+      comment
+    })
+  } else {
+    localComments.value.unshift(comment)
+  }
+  localCommentCount.value += 1
+  showToast(replyContext.value ? '回复已发送' : '评论已发送')
+  cancelCommentComposer()
+}
+
+function resetLocalComments() {
+  localComments.value = []
+  localReplies.value = []
+  localCommentCount.value = 0
 }
 
 function isEditableTarget(target) {
@@ -415,31 +515,112 @@ function formatPublishedAt(value) {
 
         <section class="image-work__comments">
           <p class="image-work__comment-count">
-            共 {{ work.commentCount }} 条评论
+            共 {{ displayCommentCount }} 条评论
           </p>
           <CommentItem
-            v-for="comment in comments"
+            v-for="comment in displayComments"
             :key="comment.id"
             :comment="comment"
             :avatar-size="34"
             @open-author="openAuthor($event.author)"
+            @reply="openReplyComposer"
           />
         </section>
 
-        <footer class="image-work__actions">
-          <button type="button">
-            说点什么...
-          </button>
-          <span>
-            <LikeAction
-              :count="work.likes"
-              label="点赞作品"
-              icon-size="21"
-            />
-          </span>
-          <span>☆ {{ work.favoriteCount }}</span>
-          <span>💬 {{ work.commentCount }}</span>
-          <span>↗ {{ work.shareCount }}</span>
+        <footer
+          class="image-work__actions"
+          :class="{ 'is-composing': composerOpen }"
+        >
+          <template v-if="!composerOpen">
+            <button
+              class="image-work__comment-trigger"
+              type="button"
+              @click="openCommentComposer"
+            >
+              <Avatar
+                :avatar-url="authStore.user?.avatarUrl"
+                :username="authStore.user?.nickName || '我'"
+                :size="26"
+              />
+              <span>说点什么...</span>
+            </button>
+            <span class="image-work__stat">
+              <LikeAction
+                :count="work.likes"
+                label="点赞作品"
+                icon-size="21"
+              />
+            </span>
+            <span class="image-work__stat">☆ {{ work.favoriteCount }}</span>
+            <span class="image-work__stat">💬 {{ displayCommentCount }}</span>
+            <span class="image-work__stat">↗ {{ work.shareCount }}</span>
+          </template>
+
+          <form
+            v-else
+            class="comment-composer"
+            @submit.prevent="submitComment"
+          >
+            <div
+              v-if="replyContext"
+              class="comment-composer__reference"
+            >
+              <span>回复 {{ replyAuthorName }}</span>
+              <p>{{ replyContext.target.content }}</p>
+            </div>
+            <div class="comment-composer__input-row">
+              <input
+                ref="commentInput"
+                v-model="commentDraft"
+                :placeholder="commentPlaceholder"
+                maxlength="500"
+                autocomplete="off"
+                @keydown.esc.prevent="cancelCommentComposer"
+              >
+              <div class="comment-composer__quick-emoji">
+                <button
+                  v-for="emoji in ['🫠', '🥵', '😭']"
+                  :key="emoji"
+                  type="button"
+                  :aria-label="`插入${emoji}`"
+                  @click="insertCommentText(emoji)"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+            </div>
+            <div class="comment-composer__toolbar">
+              <button
+                type="button"
+                aria-label="提醒用户"
+                @click="insertCommentText('@')"
+              >
+                @
+              </button>
+              <button
+                type="button"
+                aria-label="插入表情"
+                @click="insertCommentText('😊')"
+              >
+                ☺
+              </button>
+              <span />
+              <button
+                class="comment-composer__send"
+                type="submit"
+                :disabled="!canSubmitComment"
+              >
+                发送
+              </button>
+              <button
+                class="comment-composer__cancel"
+                type="button"
+                @click="cancelCommentComposer"
+              >
+                取消
+              </button>
+            </div>
+          </form>
         </footer>
       </aside>
     </article>
@@ -726,21 +907,141 @@ function formatPublishedAt(value) {
   padding: 12px 22px;
 }
 
-.image-work__actions > button {
+.image-work__comment-trigger {
+  display: flex;
+  min-width: 0;
   height: 36px;
+  align-items: center;
+  gap: 9px;
   border-radius: 999px;
   color: #9da3ad;
   background: #f6f7f8;
   text-align: left;
-  padding: 0 18px;
+  padding: 0 12px 0 6px;
 }
 
-.image-work__actions span {
+.image-work__comment-trigger > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-work__stat {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: #424751;
   white-space: nowrap;
+}
+
+.image-work__actions.is-composing {
+  display: block;
+  padding: 13px 18px 12px;
+}
+
+.comment-composer__reference {
+  margin: -1px 10px 10px;
+  color: #7f858f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.comment-composer__reference span {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.comment-composer__reference p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #4d535c;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.comment-composer__input-row {
+  position: relative;
+}
+
+.comment-composer__input-row input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  outline: none;
+  background: #f6f7f8;
+  color: #30333a;
+  font-size: 14px;
+  padding: 0 118px 0 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.comment-composer__input-row input:focus {
+  border-color: #ffd6da;
+  background: #fafafa;
+}
+
+.comment-composer__quick-emoji {
+  position: absolute;
+  top: 0;
+  right: 11px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.comment-composer__quick-emoji button {
+  display: inline-grid;
+  width: 24px;
+  height: 28px;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 18px;
+}
+
+.comment-composer__quick-emoji button:hover {
+  background: #eceef1;
+}
+
+.comment-composer__toolbar {
+  display: grid;
+  grid-template-columns: 32px 32px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-composer__toolbar > button {
+  height: 34px;
+  border-radius: 999px;
+  color: #575d66;
+  font-size: 19px;
+}
+
+.comment-composer__toolbar .comment-composer__send,
+.comment-composer__toolbar .comment-composer__cancel {
+  min-width: 64px;
+  padding: 0 17px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.comment-composer__toolbar .comment-composer__send {
+  color: #fff;
+  background: #ff8993;
+}
+
+.comment-composer__toolbar .comment-composer__send:disabled {
+  background: #ffc6cb;
+  cursor: not-allowed;
+}
+
+.comment-composer__toolbar .comment-composer__cancel {
+  border: 1px solid #e8e9ec;
+  background: #fff;
+  color: #6c7179;
 }
 
 .image-fullscreen {

@@ -37,24 +37,11 @@
         />
         <button
           type="button"
-          @click="replying = !replying"
+          @click="$emit('reply', { target: comment, root: rootComment || comment })"
         >
           回复
         </button>
       </footer>
-      <form
-        v-if="replying"
-        class="comment-item__reply-form"
-        @submit.prevent="replying = false"
-      >
-        <input
-          v-model.trim="replyText"
-          :placeholder="`回复 ${comment.author?.nickname || '用户'}`"
-        >
-        <button type="submit">
-          发送
-        </button>
-      </form>
       <button
         v-if="comment.replies?.length"
         type="button"
@@ -71,8 +58,10 @@
           v-for="reply in comment.replies"
           :key="reply.id"
           :comment="reply"
+          :root-comment="rootComment || comment"
           :avatar-size="28"
           @open-author="$emit('open-author', $event)"
+          @reply="$emit('reply', $event)"
         />
       </div>
     </div>
@@ -94,14 +83,16 @@ defineProps({
   avatarSize: {
     type: [Number, String],
     default: 34
+  },
+  rootComment: {
+    type: Object,
+    default: null
   }
 })
 
-defineEmits(['open-author'])
+defineEmits(['open-author', 'reply'])
 
 const expanded = ref(false)
-const replying = ref(false)
-const replyText = ref('')
 </script>
 
 <style scoped>
@@ -152,29 +143,6 @@ const replyText = ref('')
 
 .comment-item__footer button {
   color: inherit;
-}
-
-.comment-item__reply-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.comment-item__reply-form input {
-  min-width: 0;
-  height: 32px;
-  flex: 1;
-  border: 0;
-  border-radius: 999px;
-  outline: 0;
-  background: #f6f7f8;
-  color: #30333a;
-  padding: 0 13px;
-}
-
-.comment-item__reply-form button {
-  color: var(--color-primary);
-  font-weight: 700;
 }
 
 .comment-item__expand {
