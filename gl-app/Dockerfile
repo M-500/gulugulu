@@ -12,11 +12,20 @@ FROM dependencies AS test
 COPY . .
 RUN go test ./...
 
+
+
 FROM dependencies AS build
 
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
 COPY . .
+
+ENV GO111MODULE=on \
+    GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags "-s -w" \
