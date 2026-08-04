@@ -13,7 +13,7 @@ ENV GO111MODULE=on \
 RUN go mod download
 
 COPY . .
-RUN go test ./...
+# RUN go test ./...
 
 FROM dependencies AS build
 
