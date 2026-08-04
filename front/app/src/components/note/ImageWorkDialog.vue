@@ -5,6 +5,7 @@ import { Button as VanButton, Popup as VanPopup, showToast } from 'vant'
 import Avatar from '@/components/Avatar/avatar.vue'
 import AuthorWrapper from '@/components/AuthorWrapper/authWrapper.vue'
 import CommentItem from '@/components/CommentItem/commentItem.vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 import HlsVideoPlayer from '@/components/HlsVideoPlayer.vue'
 import LikeAction from '@/components/LikeAction/likeAction.vue'
 import { getAppWorkDetail } from '@/services/workService'
@@ -35,6 +36,8 @@ const replyContext = ref(null)
 const localComments = ref([])
 const localReplies = ref([])
 const localCommentCount = ref(0)
+const favorited = ref(false)
+const favoriteDelta = ref(0)
 const authStore = useAuthStore()
 let requestVersion = 0
 let localCommentSequence = 0
@@ -160,6 +163,10 @@ const displayComments = computed(() => {
   }))
 })
 const displayCommentCount = computed(() => Number(work.value.commentCount || 0) + localCommentCount.value)
+const displayFavoriteCount = computed(() => Math.max(
+  0,
+  Number(work.value.favoriteCount || 0) + favoriteDelta.value
+))
 const canSubmitComment = computed(() => Boolean(commentDraft.value.trim()))
 const replyAuthorName = computed(() => (
   replyContext.value?.target?.author?.nickname
@@ -176,6 +183,8 @@ watch([() => props.show, () => props.note?.id], ([show, workId], previous) => {
     detail.value = null
     loadError.value = ''
     resetLocalComments()
+    favorited.value = false
+    favoriteDelta.value = 0
   }
   cancelCommentComposer()
   activeIndex.value = 0
@@ -217,6 +226,12 @@ function openCommentComposer() {
   replyContext.value = null
   composerOpen.value = true
   focusCommentInput()
+}
+
+function toggleFavorite() {
+  favorited.value = !favorited.value
+  favoriteDelta.value += favorited.value ? 1 : -1
+  showToast(favorited.value ? '已收藏' : '已取消收藏')
 }
 
 function openReplyComposer(context) {
@@ -551,9 +566,42 @@ function formatPublishedAt(value) {
                 icon-size="21"
               />
             </span>
-            <span class="image-work__stat">☆ {{ work.favoriteCount }}</span>
-            <span class="image-work__stat">💬 {{ displayCommentCount }}</span>
-            <span class="image-work__stat">↗ {{ work.shareCount }}</span>
+            <button
+              class="image-work__stat"
+              :class="{ 'is-active': favorited }"
+              type="button"
+              :aria-label="favorited ? '取消收藏' : '收藏作品'"
+              :aria-pressed="favorited"
+              @click="toggleFavorite"
+            >
+              <SvgIcon
+                name="collect"
+                size="21"
+              />
+              {{ displayFavoriteCount }}
+            </button>
+            <button
+              class="image-work__stat"
+              type="button"
+              aria-label="发表评论"
+              @click="openCommentComposer"
+            >
+              <SvgIcon
+                name="comment"
+                size="21"
+              />
+              {{ displayCommentCount }}
+            </button>
+            <button
+              class="image-work__stat image-work__stat--share"
+              type="button"
+              aria-label="分享作品"
+            >
+              <SvgIcon
+                name="share"
+                size="21"
+              />
+            </button>
           </template>
 
           <form
@@ -883,8 +931,16 @@ function formatPublishedAt(value) {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 14px 22px 84px;
+}
+
+.image-work__comments::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .image-work__comment-count {
@@ -930,8 +986,31 @@ function formatPublishedAt(value) {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  border: 0;
+  background: transparent;
   color: #424751;
+  cursor: pointer;
+  font: inherit;
   white-space: nowrap;
+  padding: 0;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.image-work__stat:hover {
+  color: var(--color-primary);
+}
+
+.image-work__stat:active {
+  transform: scale(0.92);
+}
+
+.image-work__stat.is-active {
+  color: var(--color-primary);
+}
+
+.image-work__stat--share {
+  width: 22px;
+  justify-content: center;
 }
 
 .image-work__actions.is-composing {

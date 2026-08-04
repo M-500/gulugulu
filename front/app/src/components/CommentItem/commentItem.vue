@@ -113,9 +113,11 @@ const expanded = ref(false)
 }
 
 .comment-item__content {
+  overflow-wrap: anywhere;
   color: #333841;
   font-size: 13px;
   line-height: 1.7;
+  word-break: break-word;
 }
 
 .comment-item__image {

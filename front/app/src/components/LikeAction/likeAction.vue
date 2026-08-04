@@ -6,10 +6,9 @@
     :aria-label="label"
     @click="toggle"
   >
-    <BaseIcon
-      name="heart"
+    <SvgIcon
+      :name="liked ? 'like-filled' : 'like'"
       :size="iconSize"
-      :fill="liked ? 'currentColor' : 'none'"
     />
     <span>{{ countText }}</span>
   </button>
@@ -18,7 +17,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 
-import BaseIcon from '@/components/common/BaseIcon.vue'
+import SvgIcon from '@/components/common/SvgIcon.vue'
 
 const props = defineProps({
   modelValue: {
