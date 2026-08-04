@@ -34,8 +34,8 @@ ENV TZ=${TZ}
 
 # ffmpeg 软件包同时提供 ffmpeg 和 ffprobe，满足转码、HLS切片和媒体信息探测。
 # 安装 tzdata 后将系统时区和 TZ 环境变量统一，确保 Go 日志及定时发布使用同一时区。
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl ffmpeg tzdata \
+RUN apt-get -o Acquire::Retries=5 update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y --no-install-recommends ca-certificates curl ffmpeg tzdata \
     && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
     && printf '%s\n' "${TZ}" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/* \
@@ -45,7 +45,7 @@ RUN apt-get update \
     && chown -R gulugulu:gulugulu /app /tmp/gulugulu-media
 
 WORKDIR /app
-COPY --from=dependencies --chown=gulugulu:gulugulu gulu-api /app/gulu-api
+COPY --from=dependencies --chown=gulugulu:gulugulu /workspace/gulu-api /app/gulu-api
 
 LABEL org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.revision=${GIT_COMMIT}
