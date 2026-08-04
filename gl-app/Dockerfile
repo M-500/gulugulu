@@ -12,8 +12,6 @@ ENV GO111MODULE=on \
     GOARCH=amd64
 RUN go mod download
 
-FROM dependencies AS test
-
 COPY . .
 RUN go test ./...
 
