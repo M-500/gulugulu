@@ -1,5 +1,5 @@
 ARG GO_IMAGE=golang:1.24-bookworm
-ARG RUNTIME_IMAGE=debian:bookworm-slim
+ARG RUNTIME_IMAGE=ubuntu:24.04
 
 FROM ${GO_IMAGE} AS dependencies
 
@@ -35,13 +35,19 @@ FROM ${RUNTIME_IMAGE} AS runtime
 
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
+ARG TZ=Asia/Shanghai
+
+ENV TZ=${TZ}
 
 # ffmpeg 软件包同时提供 ffmpeg 和 ffprobe，满足转码、HLS切片和媒体信息探测。
+# 安装 tzdata 后将系统时区和 TZ 环境变量统一，确保 Go 日志及定时发布使用同一时区。
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg tzdata \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl ffmpeg tzdata \
+    && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
+    && printf '%s\n' "${TZ}" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 10001 gulugulu \
-    && useradd --system --uid 10001 --gid gulugulu --home-dir /app gulugulu \
+    && useradd --system --uid 10001 --gid gulugulu --home-dir /app --no-log-init gulugulu \
     && mkdir -p /app/etc /tmp/gulugulu-media \
     && chown -R gulugulu:gulugulu /app /tmp/gulugulu-media
 
