@@ -62,7 +62,10 @@ function handleKeydown(event) {
       to="/"
       aria-label="咕噜咕噜首页"
     >
-      咕噜
+      <img
+        src="@/assets/brand/gulugulu-logo.png"
+        alt="咕噜咕噜"
+      >
     </RouterLink>
 
     <nav class="sidebar-nav">
@@ -205,19 +208,21 @@ function handleKeydown(event) {
 }
 
 .brand {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 76px;
-  height: 36px;
-  margin-bottom: 48px;
-  border-radius: 999px;
-  color: #fff;
-  font-weight: 900;
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: 0;
-  background: var(--color-primary);
+  display: block;
+  width: 158px;
+  height: 53px;
+  margin-bottom: 40px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #f20b12;
+  box-shadow: 0 8px 22px rgba(240, 11, 18, 0.18);
+}
+
+.brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sidebar-nav {
