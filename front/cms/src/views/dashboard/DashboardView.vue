@@ -26,8 +26,8 @@
 
       <main class="dashboard-shell__content">
         <DashboardOverview v-if="activeMenu === 'home'" />
-        <PublishView v-else-if="activeMenu === 'publish'" />
-        <WorksManagementView v-else-if="activeMenu === 'works'" />
+        <PublishView v-else-if="activeMenu === 'publish'" :edit-work-id="editingWorkId" @close-edit="closeWorkEdit" @edit-saved="closeWorkEdit" />
+        <WorksManagementView v-else-if="activeMenu === 'works'" @edit-work="openWorkEdit" />
         <ReviewCenterView v-else-if="activeMenu === 'review'" @count-change="reviewCount = $event" />
         <ProfileView v-else-if="activeMenu === 'profile'" />
         <DashboardPlaceholder v-else :menu="currentMenu" />
@@ -59,6 +59,7 @@ const authStore = useAuthStore()
 const activeMenu = ref('home')
 const menuOpen = ref(false)
 const reviewCount = ref(0)
+const editingWorkId = ref(null)
 const currentMenu = computed(() => dashboardMenus.find((item) => item.key === activeMenu.value))
 
 onMounted(loadProfile)
@@ -72,8 +73,19 @@ async function loadProfile() {
 }
 
 function handleMenuSelect(key) {
+  if (key !== 'publish') editingWorkId.value = null
   activeMenu.value = key
   menuOpen.value = false
+}
+
+function openWorkEdit(workId) {
+  editingWorkId.value = workId
+  activeMenu.value = 'publish'
+}
+
+function closeWorkEdit() {
+  editingWorkId.value = null
+  activeMenu.value = 'works'
 }
 
 function logout() {

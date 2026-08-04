@@ -52,6 +52,12 @@
       @close="closeDetail"
       @retry="loadWorkDetail"
     />
+    <WorkVisibilityDialog
+      v-model="visibilityDialogOpen"
+      :work="visibilityWork"
+      :saving="visibilitySaving"
+      @confirm="saveVisibility"
+    />
   </section>
 </template>
 
@@ -62,14 +68,16 @@ import {
   deleteCreatorWork,
   getCreatorWorks,
   getWork,
-  updateCreatorWorkTitle,
   updateCreatorWorkVisibility
 } from '@/api/works'
 
 import WorksGrid from './components/WorksGrid.vue'
 import WorkDetailDialog from './components/WorkDetailDialog.vue'
+import WorkVisibilityDialog from './components/WorkVisibilityDialog.vue'
 import WorksPagination from './components/WorksPagination.vue'
 import WorksToolbar from './components/WorksToolbar.vue'
+
+const emit = defineEmits(['edit-work'])
 
 const activeStatus = ref('all')
 const keyword = ref('')
@@ -84,6 +92,9 @@ const selectedWork = ref(null)
 const workDetail = ref(null)
 const detailLoading = ref(false)
 const detailError = ref('')
+const visibilityDialogOpen = ref(false)
+const visibilityWork = ref(null)
+const visibilitySaving = ref(false)
 const counts = ref({
   all: 0,
   published: 0,
@@ -174,28 +185,30 @@ function closeDetail() {
   detailError.value = ''
 }
 
-async function handleEdit(work) {
-  const title = window.prompt('请输入新的作品标题', work.title)
-  if (title === null || title.trim() === work.title) {
-    return
-  }
-  try {
-    await updateCreatorWorkTitle(work.workId, title.trim())
-    work.title = title.trim()
-  } catch (error) {
-    window.alert(error.message || '修改标题失败')
-  }
+function handleEdit(work) {
+  emit('edit-work', work.workId)
 }
 
-async function handleVisibility({ work, visibility }) {
-  if (work.visibility === visibility) {
+function handleVisibility(work) {
+  visibilityWork.value = work
+  visibilityDialogOpen.value = true
+}
+
+async function saveVisibility(visibility) {
+  const work = visibilityWork.value
+  if (!work || work.visibility === visibility) {
+    visibilityDialogOpen.value = false
     return
   }
+  visibilitySaving.value = true
   try {
     await updateCreatorWorkVisibility(work.workId, visibility)
     work.visibility = visibility
+    visibilityDialogOpen.value = false
   } catch (error) {
     window.alert(error.message || '修改作品权限失败')
+  } finally {
+    visibilitySaving.value = false
   }
 }
 

@@ -188,79 +188,41 @@
 .work-card__actions {
   position: absolute;
   z-index: 4;
-  top: -2px;
+  top: -4px;
   right: 0;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.work-card__actions summary {
+.work-card:hover .work-card__actions,
+.work-card:focus-within .work-card__actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.work-card__actions button {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   place-items: center;
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   color: #676e78;
   cursor: pointer;
-  font-size: 18px;
-  list-style: none;
+  font-size: 16px;
 }
 
-.work-card__actions summary::-webkit-details-marker {
-  display: none;
-}
-
-.work-card__actions summary:hover,
-.work-card__actions[open] summary {
+.work-card__actions button:hover {
   background: #f4f5f7;
   color: #2f353d;
 }
 
-.work-card__menu {
-  position: absolute;
-  top: 36px;
-  right: 0;
-  display: grid;
-  width: 152px;
-  overflow: hidden;
-  border: 1px solid #e9ebee;
-  border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 12px 30px rgba(31, 38, 48, 0.14);
-  padding: 5px;
-}
-
-.work-card__menu > span {
-  color: #a1a6ae;
-  font-size: 10px;
-  padding: 8px 10px 4px;
-}
-
-.work-card__menu button {
-  min-height: 34px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #545b65;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0 10px;
-  text-align: left;
-}
-
-.work-card__menu button:hover,
-.work-card__menu button.is-selected {
-  background: #f5f6f8;
-  color: #262c34;
-}
-
-.work-card__menu button.is-selected::after {
-  float: right;
-  content: "✓";
-  color: #ef4d58;
-}
-
-.work-card__menu button.is-danger {
-  margin-top: 4px;
-  border-top: 1px solid #eff0f2;
+.work-card__actions button.is-danger:hover {
+  background: #fff0f1;
   color: #e54855;
 }
 
@@ -321,6 +283,43 @@
   color: #a8adb5;
   font-size: 11px;
 }
+
+.work-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: auto;
+  padding-top: 10px;
+  color: #9ca2ab;
+}
+
+.work-card__stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.work-card__stats .el-icon { font-size: 13px; }
+.work-card__private { display: inline-flex; align-items: center; gap: 3px; }
+
+.work-visibility-dialog { overflow: hidden; border-radius: 18px !important; padding: 0 !important; }
+.work-visibility-dialog .el-dialog__header,
+.work-visibility-dialog .el-dialog__body,
+.work-visibility-dialog .el-dialog__footer { padding: 0; }
+.visibility-dialog__header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 14px; }
+.visibility-dialog__header strong { color: #303640; font-size: 17px; }
+.visibility-dialog__header button { border: 0; background: transparent; color: #8d939c; cursor: pointer; font-size: 25px; }
+.visibility-dialog__work { display: flex; align-items: center; gap: 14px; margin: 0 24px; border-radius: 14px; background: #f7f7f8; padding: 14px 16px; }
+.visibility-dialog__work img { width: 66px; height: 86px; border-radius: 8px; object-fit: cover; }
+.visibility-dialog__work div { display: grid; gap: 7px; }
+.visibility-dialog__work strong { color: #343a43; font-size: 14px; }
+.visibility-dialog__work span { color: #9ca2ab; font-size: 11px; }
+.visibility-dialog__field { display: grid; gap: 8px; margin: 18px 24px 4px; }
+.visibility-dialog__field > span { color: #7d848e; font-size: 11px; }
+.visibility-dialog__field .el-select { width: 230px; }
+.work-visibility-dialog .el-dialog__footer { padding: 18px 24px 22px; }
+.work-visibility-dialog .el-button--primary { border-color: var(--color-primary); background: var(--color-primary); }
 
 .works-state-card {
   display: grid;
