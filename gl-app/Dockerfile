@@ -15,7 +15,6 @@ RUN go mod download
 COPY . .
 # RUN go test ./...
 
-FROM dependencies AS build
 
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
@@ -46,7 +45,7 @@ RUN apt-get update \
     && chown -R gulugulu:gulugulu /app /tmp/gulugulu-media
 
 WORKDIR /app
-COPY --from=build --chown=gulugulu:gulugulu gulu-api /app/gulu-api
+COPY --from=dependencies --chown=gulugulu:gulugulu gulu-api /app/gulu-api
 
 LABEL org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.revision=${GIT_COMMIT}
