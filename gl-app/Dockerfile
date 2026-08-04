@@ -17,20 +17,15 @@ FROM dependencies AS test
 COPY . .
 RUN go test ./...
 
-
-
 FROM dependencies AS build
 
 ARG VERSION=dev
 ARG GIT_COMMIT=unknown
-COPY . .
-
-
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags "-s -w" \
-    -o /out/gulu-api ./api
+    -o gulu-api ./api
 
 FROM ${RUNTIME_IMAGE} AS runtime
 
@@ -53,7 +48,7 @@ RUN apt-get update \
     && chown -R gulugulu:gulugulu /app /tmp/gulugulu-media
 
 WORKDIR /app
-COPY --from=build --chown=gulugulu:gulugulu /out/gulu-api /app/gulu-api
+COPY --from=build --chown=gulugulu:gulugulu gulu-api /app/gulu-api
 
 LABEL org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.revision=${GIT_COMMIT}
