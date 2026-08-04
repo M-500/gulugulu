@@ -1,5 +1,12 @@
 <template>
   <section class="publish-page">
+    <PublishedWorkEditor
+      v-if="editWorkId"
+      :work-id="editWorkId"
+      @close="$emit('close-edit')"
+      @saved="$emit('edit-saved')"
+    />
+    <template v-else>
     <PublishUploadStage
       v-if="!currentDraft"
       v-model="activeType"
@@ -68,6 +75,7 @@
     <div v-if="collectionOpen" class="collection-popover" @click.self="collectionOpen = false">
       <div><h3>添加视频合集</h3><input v-model.trim="collectionName" placeholder="输入合集名称，例如：项目工程日志"><button type="button" @click="applyCollection">创建并加入合集</button></div>
     </div>
+    </template>
   </section>
 </template>
 
@@ -86,9 +94,13 @@ import PublishDraftDrawer from './components/PublishDraftDrawer.vue'
 import PublishPreview from './components/PublishPreview.vue'
 import PublishSettings from './components/PublishSettings.vue'
 import PublishUploadStage from './components/PublishUploadStage.vue'
+import PublishedWorkEditor from './components/PublishedWorkEditor.vue'
 import { defaultTopics, publishTypes } from './publishOptions'
 
 const draftStore = usePublishDraftStore()
+
+defineProps({ editWorkId: { type: [Number, String], default: null } })
+defineEmits(['close-edit', 'edit-saved'])
 
 const activeType = ref('video')
 const drawerType = ref('video')
