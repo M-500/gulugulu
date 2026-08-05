@@ -2,12 +2,13 @@ package interactive_repo
 
 import (
 	"context"
+	"gl-app/api/internal/constants"
 
 	"gorm.io/gorm"
 )
 
 type InteractiveRepo interface {
-	FindOneByResourceID(ctx context.Context, resourceID int64) (*InteractiveModel, error)
+	FindOneByResourceID(ctx context.Context, resourceID int64, bizType constants.BizType) (*InteractiveModel, error)
 	Like(ctx context.Context, resourceID int64) error
 	Dislike(ctx context.Context, resourceID int64) error
 	Share(ctx context.Context, resourceID int64) error
@@ -22,8 +23,8 @@ func NewInteractiveRepo(dao InteractiveDao) InteractiveRepo {
 	return &interactiveRepoImpl{dao: dao}
 }
 
-func (r *interactiveRepoImpl) FindOneByResourceID(ctx context.Context, resourceID int64) (*InteractiveModel, error) {
-	return r.dao.FindOneByResourceID(ctx, resourceID)
+func (r *interactiveRepoImpl) FindOneByResourceID(ctx context.Context, resourceID int64, bizType constants.BizType) (*InteractiveModel, error) {
+	return r.dao.FindOneByResourceID(ctx, resourceID, bizType)
 }
 
 func (r *interactiveRepoImpl) Like(ctx context.Context, resourceID int64) error {

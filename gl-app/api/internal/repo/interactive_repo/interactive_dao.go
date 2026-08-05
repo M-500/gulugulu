@@ -2,12 +2,13 @@ package interactive_repo
 
 import (
 	"context"
+	"gl-app/api/internal/constants"
 
 	"gorm.io/gorm"
 )
 
 type InteractiveDao interface {
-	FindOneByResourceID(ctx context.Context, resourceID int64) (*InteractiveModel, error)
+	FindOneByResourceID(ctx context.Context, resourceID int64, bizType constants.BizType) (*InteractiveModel, error)
 	Create(ctx context.Context, interactive *InteractiveModel) error
 	Update(ctx context.Context, interactive *InteractiveModel) error
 	UpdateByMap(ctx context.Context, resourceID int64, data map[string]any) error
@@ -22,9 +23,9 @@ func NewInteractiveDao(db *gorm.DB) InteractiveDao {
 	return &interactiveDaoImpl{db: db}
 }
 
-func (d *interactiveDaoImpl) FindOneByResourceID(ctx context.Context, resourceID int64) (*InteractiveModel, error) {
+func (d *interactiveDaoImpl) FindOneByResourceID(ctx context.Context, resourceID int64, bizType constants.BizType) (*InteractiveModel, error) {
 	var interactive InteractiveModel
-	if err := d.db.WithContext(ctx).Where("resource_id = ?", resourceID).First(&interactive).Error; err != nil {
+	if err := d.db.WithContext(ctx).Where("resource_id = ? AND resource_type = ?", resourceID, bizType).First(&interactive).Error; err != nil {
 		return nil, err
 	}
 	return &interactive, nil

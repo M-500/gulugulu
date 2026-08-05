@@ -1,9 +1,24 @@
 :root {
   --color-primary: #ef4d58;
+  --color-primary-hover: #f3717a;
+  --color-primary-active: #bf3e46;
   --color-text: #111827;
   --color-text-muted: #6b7280;
   --color-border: #d9dee8;
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+
+  /* 统一覆盖 Element Plus 主色体系，避免组件回退到默认蓝色。 */
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-light-1: #f15f69;
+  --el-color-primary-light-2: #f3717a;
+  --el-color-primary-light-3: #f5838b;
+  --el-color-primary-light-4: #f6959d;
+  --el-color-primary-light-5: #f8a6ac;
+  --el-color-primary-light-6: #fab8be;
+  --el-color-primary-light-7: #fbcace;
+  --el-color-primary-light-8: #fddbdd;
+  --el-color-primary-light-9: #feedef;
+  --el-color-primary-dark-2: var(--color-primary-active);
 }
 
 * {

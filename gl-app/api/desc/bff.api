@@ -156,5 +156,9 @@ service gulu {
 	@doc "动态生成审核作品HLS播放清单"
 	@handler getAuditWorkPlaylist
 	get /audit/works/:workId/playlist (WorkIdReq)
+
+
+	// 交互相关的接口
+	
 }
 
