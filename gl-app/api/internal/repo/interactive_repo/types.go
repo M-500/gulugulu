@@ -2,6 +2,7 @@ package interactive_repo
 
 import (
 	"gl-app/api/internal/constants"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,4 +20,35 @@ type InteractiveModel struct {
 
 func (InteractiveModel) TableName() string {
 	return "interactive"
+}
+
+// UserLikeModel 保存用户与资源之间的点赞关系，用版本号保证 Kafka 重投和乱序时幂等。
+type UserLikeModel struct {
+	ID           uint `gorm:"primaryKey"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	UserID       int64             `gorm:"column:user_id;not null;type:bigint;uniqueIndex:idx_user_resource_like"`
+	ResourceID   int64             `gorm:"column:resource_id;not null;type:bigint;uniqueIndex:idx_user_resource_like"`
+	ResourceType constants.BizType `gorm:"column:resource_type;not null;type:varchar(32);uniqueIndex:idx_user_resource_like"`
+	Liked        bool              `gorm:"column:liked;not null;default:0;comment:当前是否点赞"`
+	Version      int64             `gorm:"column:version;not null;default:0;comment:Redis操作版本"`
+}
+
+func (UserLikeModel) TableName() string { return "user_like" }
+
+type LikeEvent struct {
+	EventID      string            `json:"eventId"`
+	UserID       int64             `json:"userId"`
+	ResourceID   int64             `json:"resourceId"`
+	ResourceType constants.BizType `json:"resourceType"`
+	Liked        bool              `json:"liked"`
+	Version      int64             `json:"version"`
+	OccurredAt   time.Time         `json:"occurredAt"`
+}
+
+type LikeMutation struct {
+	Changed bool
+	Liked   bool
+	Count   int64
+	Version int64
 }

@@ -38,6 +38,7 @@ func main() {
 	defer serviceGroup.Stop()
 	serviceGroup.Add(server)
 	serviceGroup.Add(worker.NewMediaWorker(context.Background(), ctx))
+	serviceGroup.Add(worker.NewLikeWorker(ctx))
 
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
 	serviceGroup.Start()

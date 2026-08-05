@@ -14,6 +14,8 @@ import (
 	"media/media.api"
 	"publish/publish.api"
 	"user/user.api"
+	"interactive/interactive.api"
+	"comment/comment.api"
 )
 
 // No Need Login
@@ -33,6 +35,33 @@ service gulu {
 	@doc "注册接口"
 	@handler register
 	post /user/register (RegisterReq) returns (RegisterResp)
+}
+
+@server (
+	prefix: api/v1
+	group:  interactive
+	jwt:    JwtAuth
+)
+service gulu {
+	@doc "点赞作品、评论或头像"
+	@handler likeResource
+	post /interactions/:resourceType/:resourceId/like (LikeResourceReq) returns (LikeResourceResp)
+
+	@doc "取消点赞作品、评论或头像"
+	@handler unlikeResource
+	delete /interactions/:resourceType/:resourceId/like (LikeResourceReq) returns (LikeResourceResp)
+
+}
+
+@server (
+	prefix: api/v1
+	group:  comment
+	jwt:    JwtAuth
+)
+service gulu {
+	@doc "评论作品或回复评论"
+	@handler createComment
+	post /works/:workId/comments (CreateCommentReq) returns (CreateCommentResp)
 }
 
 // Current user profile
@@ -88,6 +117,21 @@ service gulu {
 	@doc "获取App公开视频HLS播放清单"
 	@handler getAppWorkPlaylist
 	get /works/:workId/playlist (AppWorkDetailReq)
+
+}
+
+@server (
+	prefix: app/v1
+	group:  comment
+)
+service gulu {
+	@doc "分页获取作品一级评论，默认10条"
+	@handler getCommentList
+	get /works/:workId/comments (CommentListReq) returns (CommentListResp)
+
+	@doc "分页获取一级评论下的剩余回复"
+	@handler getCommentReplyList
+	get /comments/:commentId/replies (CommentReplyListReq) returns (CommentListResp)
 }
 
 // Need login
@@ -161,4 +205,3 @@ service gulu {
 	// 交互相关的接口
 	
 }
-

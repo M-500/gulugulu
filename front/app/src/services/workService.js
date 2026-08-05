@@ -15,9 +15,11 @@ export async function getAppWorkDetail(workId) {
     author: data.author?.nickName || '咕噜用户',
     avatar: data.author?.avatarUrl || '',
     likes: data.like?.text || String(data.like?.count || 0),
+	liked: Boolean(data.like?.liked),
     favoriteCount: data.favoriteCount || 0,
     commentCount: data.commentCount || 0,
     shareCount: data.shareCount || 0,
+	viewCount: data.viewCount || 0,
     assets: data.assets || [],
     topics: data.topics || []
   }

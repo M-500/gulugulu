@@ -46,11 +46,16 @@ func (l *GetUserPublishedWorkListLogic) GetUserPublishedWorkList(req *types.User
 		UserId: user.ID, NickName: normalizeAuthorName(user.Nickname),
 		AvatarUrl: buildAppPublicAvatarURL(l.svcCtx, user.Avatar),
 	}
+	workIDs := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		workIDs = append(workIDs, row.ID)
+	}
+	likes := queryWorkLikes(l.ctx, l.svcCtx, req.ViewerUserId, workIDs)
 	for _, row := range rows {
 		item := types.RecommendWorkItem{
 			WorkId: row.ID, Type: row.Type, Title: row.Title,
 			ContentExcerpt: strings.TrimSpace(row.ContentExcerpt), DurationMs: row.DurationMs,
-			Author: author, Like: mockRecommendLike(row.ID),
+			Author: author, Like: likes[row.ID],
 		}
 		if row.PublishedAt != nil {
 			item.PublishedAt = row.PublishedAt.Format(time.RFC3339)

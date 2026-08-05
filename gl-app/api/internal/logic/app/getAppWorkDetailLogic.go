@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"gl-app/api/internal/constants"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 
@@ -31,6 +32,10 @@ func (l *GetAppWorkDetailLogic) GetAppWorkDetail(req *types.AppWorkDetailReq) (*
 		l.Errorf("查询App公开作品%d失败: %v", req.WorkId, err)
 		return nil, fmt.Errorf("作品不存在或暂不可见")
 	}
+	// 只有成功打开公开详情页才累计阅读数；Repo 使用原子 upsert，避免并发覆盖。
+	if err = l.svcCtx.InteractiveRepo.View(l.ctx, req.WorkId, constants.WorkType); err != nil {
+		l.Errorf("累计作品%d阅读数失败: %v", req.WorkId, err)
+	}
 	assets, err := l.svcCtx.WorkRepo.ListReadyAssets(l.ctx, req.WorkId)
 	if err != nil {
 		return nil, fmt.Errorf("查询作品资源失败")
@@ -39,13 +44,20 @@ func (l *GetAppWorkDetailLogic) GetAppWorkDetail(req *types.AppWorkDetailReq) (*
 	if err != nil {
 		return nil, fmt.Errorf("查询作品话题失败")
 	}
+	like := queryWorkLikes(l.ctx, l.svcCtx, 0, []int64{row.ID})[row.ID]
+	interaction, _ := l.svcCtx.InteractiveRepo.FindOneByResourceID(l.ctx, row.ID, constants.WorkType)
 	resp := &types.AppWorkDetailResp{
 		WorkId: row.ID, Type: row.Type, Title: row.Title, Content: row.Content,
 		Author: types.RecommendAuthorItem{UserId: row.AuthorID, NickName: normalizeAuthorName(row.AuthorName),
 			AvatarUrl: buildAppPublicAvatarURL(l.svcCtx, row.AuthorAvatar)},
-		Like: mockRecommendLike(row.ID), FavoriteCount: 19 + (row.ID*53)%5000,
-		CommentCount: 8 + (row.ID*31)%1000, ShareCount: 3 + (row.ID*17)%400,
+		Like:   like,
 		Assets: make([]types.AppWorkAssetItem, 0, len(assets)), Topics: make([]types.AppWorkTopicItem, 0, len(topics)),
+	}
+	if interaction != nil {
+		resp.FavoriteCount = interaction.CollectionCount
+		resp.CommentCount = interaction.CommentCount
+		resp.ShareCount = interaction.ShareCount
+		resp.ViewCount = interaction.ViewCount
 	}
 	if row.PublishedAt != nil {
 		resp.PublishedAt = row.PublishedAt.Format(time.RFC3339)

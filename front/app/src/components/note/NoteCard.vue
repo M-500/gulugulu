@@ -10,7 +10,7 @@ defineProps({
     required: true
   }
 })
-const emit = defineEmits(['open', 'open-author'])
+const emit = defineEmits(['open', 'open-author', 'login-request', 'like-change'])
 
 </script>
 
@@ -79,6 +79,11 @@ const emit = defineEmits(['open', 'open-author'])
           :count="note.likes"
           :label="`点赞 ${note.title}`"
           icon-size="16"
+          :resource-id="note.id"
+          resource-type="work"
+          :model-value="Boolean(note.liked)"
+          @login-request="emit('login-request')"
+          @change="emit('like-change', { note, result: $event })"
         />
       </div>
     </div>

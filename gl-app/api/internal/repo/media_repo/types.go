@@ -21,6 +21,7 @@ type MediaAsset struct {
 	Width           int64  `gorm:"column:width;type:bigint;comment:宽度"`
 	Height          int64  `gorm:"column:height;type:bigint;comment:高度"`
 	BoundWorkID     int64  `gorm:"column:bound_work_id;type:bigint;comment:绑定作品ID"`
+	BoundCommentID  int64  `gorm:"column:bound_comment_id;type:bigint;not null;default:0;index;comment:绑定评论ID"`
 	ProcessError    string `gorm:"column:process_error;type:varchar(1024);comment:处理错误信息"`
 }
 

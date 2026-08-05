@@ -16,8 +16,14 @@
           @click="$emit('open-author', comment)"
         />
       </p>
-      <div class="comment-item__content">
-        {{ comment.content }}
+      <div
+        v-if="comment.content"
+        class="comment-item__content"
+      >
+        <span
+          v-if="comment.replyToName"
+          class="comment-item__reply-to"
+        >回复 {{ comment.replyToName }}：</span>{{ comment.content }}
       </div>
       <div
         v-if="comment.image"
@@ -34,6 +40,10 @@
           :count="comment.likes"
           label="评论点赞"
           icon-size="14"
+          :resource-id="comment.id"
+          resource-type="comment"
+          :model-value="Boolean(comment.liked)"
+          @login-request="$emit('login-request')"
         />
         <button
           type="button"
@@ -43,39 +53,56 @@
         </button>
       </footer>
       <button
-        v-if="comment.replies?.length"
+        v-if="replyTotal > 0"
         type="button"
         class="comment-item__expand"
-        @click="expanded = !expanded"
+        @click="toggleReplies"
       >
-        {{ expanded ? '收起回复' : `展开 ${comment.replies.length} 条回复` }}
+        {{ expanded ? '收起回复' : `展开 ${replyTotal} 条回复` }}
       </button>
       <div
-        v-if="expanded && comment.replies?.length"
+        v-if="expanded"
         class="comment-item__replies"
       >
         <CommentItem
-          v-for="reply in comment.replies"
+          v-for="reply in replies"
           :key="reply.id"
           :comment="reply"
           :root-comment="rootComment || comment"
           :avatar-size="28"
           @open-author="$emit('open-author', $event)"
           @reply="$emit('reply', $event)"
+          @login-request="$emit('login-request')"
         />
+        <p
+          v-if="repliesLoading"
+          class="comment-item__reply-state"
+        >
+          正在加载回复...
+        </p>
+        <button
+          v-else-if="repliesHasMore"
+          type="button"
+          class="comment-item__load-more"
+          @click="loadMoreReplies"
+        >
+          加载更多回复
+        </button>
       </div>
     </div>
   </article>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { showToast } from 'vant'
 
 import Avatar from '@/components/Avatar/avatar.vue'
 import AuthorWrapper from '@/components/AuthorWrapper/authWrapper.vue'
 import LikeAction from '@/components/LikeAction/likeAction.vue'
+import { getCommentReplies } from '@/services/commentService'
 
-defineProps({
+const props = defineProps({
   comment: {
     type: Object,
     required: true
@@ -90,9 +117,43 @@ defineProps({
   }
 })
 
-defineEmits(['open-author', 'reply'])
+defineEmits(['open-author', 'reply', 'login-request'])
 
 const expanded = ref(false)
+const replies = ref([...(props.comment.replies || [])])
+const repliesHasMore = ref(Boolean(props.comment.replyHasMore))
+const repliesLoading = ref(false)
+const repliesPage = ref(0)
+const replyTotal = computed(() => Number(props.comment.replyCount || replies.value.length))
+
+watch(() => props.comment.replies, (value) => {
+	const merged = [...replies.value, ...(value || [])]
+	replies.value = [...new Map(merged.map((item) => [String(item.id), item])).values()]
+	if (repliesPage.value === 0) repliesHasMore.value = Boolean(props.comment.replyHasMore)
+}, { deep: true })
+
+async function toggleReplies() {
+  expanded.value = !expanded.value
+  if (!expanded.value || !repliesHasMore.value) return
+  await loadMoreReplies(true)
+}
+
+async function loadMoreReplies(reset = false) {
+  if (repliesLoading.value) return
+  repliesLoading.value = true
+  try {
+    const page = reset ? 1 : repliesPage.value + 1
+    const data = await getCommentReplies(props.comment.id, { page, pageSize: 10 })
+    const merged = reset ? data.list : [...replies.value, ...data.list]
+    replies.value = [...new Map(merged.map((item) => [String(item.id), item])).values()]
+    repliesPage.value = data.page
+    repliesHasMore.value = data.hasMore
+  } catch (error) {
+    showToast(error.message || '回复加载失败')
+  } finally {
+    repliesLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -118,6 +179,10 @@ const expanded = ref(false)
   font-size: 13px;
   line-height: 1.7;
   word-break: break-word;
+}
+
+.comment-item__reply-to {
+  color: #315b91;
 }
 
 .comment-item__image {
@@ -160,5 +225,17 @@ const expanded = ref(false)
 
 .comment-item__replies :deep(.comment-item) {
   margin-bottom: 14px;
+}
+
+.comment-item__reply-state {
+  margin: 8px 0;
+  color: #9ba1aa;
+  font-size: 12px;
+}
+
+.comment-item__load-more {
+  margin: 2px 0 10px 39px;
+  color: #315b91;
+  font-size: 12px;
 }
 </style>

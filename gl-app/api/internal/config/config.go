@@ -37,6 +37,10 @@ type Config struct {
 		MaxRetry int
 	}
 
+	LikeQueue struct {
+		kq.KqConf
+	}
+
 	MediaWorker struct {
 		FFmpegPath  string
 		FFprobePath string

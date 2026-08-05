@@ -1,0 +1,15 @@
+syntax = "v1"
+
+type (
+	LikeResourceReq {
+		ResourceType string `path:"resourceType"`
+		ResourceId   int64  `path:"resourceId"`
+	}
+
+	LikeResourceResp {
+		ResourceType string `json:"resourceType"`
+		ResourceId   int64  `json:"resourceId"`
+		Liked        bool   `json:"liked"`
+		Count        int64  `json:"count"`
+	}
+)

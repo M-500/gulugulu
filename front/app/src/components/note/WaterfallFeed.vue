@@ -8,7 +8,7 @@ defineProps({
   }
 })
 
-defineEmits(['open-note', 'open-author'])
+defineEmits(['open-note', 'open-author', 'login-request', 'like-change'])
 </script>
 
 <template>
@@ -22,6 +22,8 @@ defineEmits(['open-note', 'open-author'])
       :note="note"
       @open-author="$emit('open-author', $event)"
       @open="$emit('open-note', $event)"
+      @login-request="$emit('login-request')"
+      @like-change="$emit('like-change', $event)"
     />
   </section>
 </template>

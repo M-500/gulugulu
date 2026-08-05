@@ -8,6 +8,7 @@ import CommentItem from '@/components/CommentItem/commentItem.vue'
 import SvgIcon from '@/components/common/SvgIcon.vue'
 import HlsVideoPlayer from '@/components/HlsVideoPlayer.vue'
 import LikeAction from '@/components/LikeAction/likeAction.vue'
+import { createComment, getWorkComments, uploadCommentImage } from '@/services/commentService'
 import { getAppWorkDetail } from '@/services/workService'
 import { useAuthStore } from '@/stores/auth'
 
@@ -22,7 +23,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:show', 'login-request', 'open-author'])
+const emit = defineEmits(['update:show', 'login-request', 'open-author', 'like-change'])
 const activeIndex = ref(0)
 const fullscreen = ref(false)
 const imageRatio = ref(0.75)
@@ -33,14 +34,21 @@ const commentInput = ref(null)
 const composerOpen = ref(false)
 const commentDraft = ref('')
 const replyContext = ref(null)
-const localComments = ref([])
-const localReplies = ref([])
+const comments = ref([])
+const commentsPage = ref(1)
+const commentsHasMore = ref(false)
+const commentsLoading = ref(false)
+const commentsError = ref('')
 const localCommentCount = ref(0)
+const commentImageInput = ref(null)
+const commentImageFile = ref(null)
+const commentImagePreview = ref('')
+const commentSubmitting = ref(false)
 const favorited = ref(false)
 const favoriteDelta = ref(0)
 const authStore = useAuthStore()
 let requestVersion = 0
-let localCommentSequence = 0
+let commentRequestVersion = 0
 
 const work = computed(() => {
   if (detail.value) return detail.value
@@ -57,7 +65,7 @@ const work = computed(() => {
     avatar: props.note?.avatar || '',
     likes: props.note?.likes || 0,
     favoriteCount: 306,
-    commentCount: 191,
+    commentCount: 0,
     shareCount: 26,
     assets: [],
     topics: []
@@ -73,101 +81,15 @@ const images = computed(() => {
   if (values.length) return values
   return work.value.cover ? [work.value.cover] : []
 })
-const comments = computed(() => [
-  {
-    id: 1,
-    author: {
-      nickname: work.value.author || '地主页硬笔草书',
-      avatar: work.value.avatar || '',
-      isAuthor: true
-    },
-    content: '莫等闲，白了少年头，空悲切。这里先放一条置顶评论，后续接评论接口即可替换。',
-    meta: '5天前 辽宁',
-    likes: 12,
-    replies: [
-      {
-        id: '1-1',
-        author: { nickname: '问一问', avatar: '', isAuthor: false },
-        content: '回复一下作者：这段写得很有感觉。',
-        meta: '4小时前 上海',
-        likes: 1,
-        replies: []
-      },
-      {
-        id: '1-2',
-        author: { nickname: '麦田里的倾听者', avatar: work.value.avatar || '', isAuthor: true },
-        content: '谢谢喜欢，后面会继续整理。',
-        meta: '3小时前 上海',
-        likes: 2,
-        replies: []
-      }
-    ]
-  },
-  {
-    id: 2,
-    author: {
-      nickname: '那年鲜衣怒马',
-      avatar: '',
-      isAuthor: false
-    },
-    content: '老师厉害，和我理解的有出入吗？',
-    meta: '昨天 17:57 湖北',
-    likes: 0,
-    image: 'https://picsum.photos/id/64/180/180',
-    replies: [
-      {
-        id: '2-1',
-        author: { nickname: '问一问', avatar: '', isAuthor: false },
-        content: '感觉主要是表达方式不一样。',
-        meta: '48分钟前 北京',
-        likes: 0,
-        replies: []
-      }
-    ]
-  },
-  {
-    id: 3,
-    author: {
-      nickname: '生活记录者',
-      avatar: '',
-      isAuthor: false
-    },
-    content: '确实，图片细节放大看更有味道。',
-    meta: '昨天 07:43 江西',
-    likes: 2,
-    replies: []
-  },
-  {
-    id: 4,
-    author: {
-      nickname: '口口',
-      avatar: '',
-      isAuthor: false
-    },
-    content: '文字是知识和文化的载体，这种内容值得慢慢看。',
-    meta: '昨天 01:22 广东',
-    likes: 2,
-    replies: []
-  }
-])
-const displayComments = computed(() => {
-  const roots = [...localComments.value, ...comments.value]
-  return roots.map((comment) => ({
-    ...comment,
-    replies: [
-      ...(comment.replies || []),
-      ...localReplies.value
-        .filter((item) => String(item.rootId) === String(comment.id))
-        .map((item) => item.comment)
-    ]
-  }))
-})
+const displayComments = computed(() => comments.value)
 const displayCommentCount = computed(() => Number(work.value.commentCount || 0) + localCommentCount.value)
 const displayFavoriteCount = computed(() => Math.max(
   0,
   Number(work.value.favoriteCount || 0) + favoriteDelta.value
 ))
-const canSubmitComment = computed(() => Boolean(commentDraft.value.trim()))
+const canSubmitComment = computed(() => (
+  Boolean(commentDraft.value.trim() || commentImageFile.value) && !commentSubmitting.value
+))
 const replyAuthorName = computed(() => (
   replyContext.value?.target?.author?.nickname
   || replyContext.value?.target?.author?.username
@@ -182,7 +104,7 @@ watch([() => props.show, () => props.note?.id], ([show, workId], previous) => {
   if (workId !== previousWorkId) {
     detail.value = null
     loadError.value = ''
-    resetLocalComments()
+    resetComments()
     favorited.value = false
     favoriteDelta.value = 0
   }
@@ -192,6 +114,7 @@ watch([() => props.show, () => props.note?.id], ([show, workId], previous) => {
   imageRatio.value = props.note?.isVideo ? 16 / 9 : 0.75
   if (show && workId) {
     loadDetail(workId)
+    loadComments(workId, true)
   }
 })
 
@@ -234,6 +157,14 @@ function toggleFavorite() {
   showToast(favorited.value ? '已收藏' : '已取消收藏')
 }
 
+function handleWorkLikeChange(result) {
+  if (detail.value) {
+    detail.value.liked = result.liked
+    detail.value.likes = String(result.count)
+  }
+  emit('like-change', { note: props.note, result })
+}
+
 function openReplyComposer(context) {
   replyContext.value = context
   composerOpen.value = true
@@ -244,6 +175,7 @@ function cancelCommentComposer() {
   composerOpen.value = false
   commentDraft.value = ''
   replyContext.value = null
+  clearCommentImage()
 }
 
 function focusCommentInput() {
@@ -255,43 +187,104 @@ function insertCommentText(value) {
   focusCommentInput()
 }
 
-function submitComment() {
+async function submitComment() {
   const content = commentDraft.value.trim()
-  if (!content) return
+  if (!content && !commentImageFile.value) return
   if (!authStore.isLoggedIn) {
     emit('login-request')
     return
   }
 
-  const comment = {
-    id: `local-${Date.now()}-${++localCommentSequence}`,
-    author: {
-      nickname: authStore.user?.nickName || '我',
-      avatar: authStore.user?.avatarUrl || '',
-      isAuthor: Number(authStore.user?.userId) === Number(work.value.authorId)
-    },
-    content,
-    meta: '刚刚',
-    likes: 0,
-    replies: []
+  commentSubmitting.value = true
+  try {
+    let imageMediaId = 0
+    if (commentImageFile.value) {
+      const uploaded = await uploadCommentImage(commentImageFile.value, authStore.accessToken)
+      imageMediaId = uploaded.mediaId
+    }
+    const created = await createComment(work.value.id, {
+      content,
+      imageMediaId,
+      parentCommentId: replyContext.value?.target?.id || 0
+    }, authStore.accessToken)
+    created.author.isAuthor = Number(created.author.id) === Number(work.value.authorId)
+    if (replyContext.value) {
+	  created.replyToName = replyAuthorName.value
+      const rootId = replyContext.value.root.id
+      const root = comments.value.find((item) => String(item.id) === String(rootId))
+      if (root) {
+        root.replies = [...(root.replies || []), created]
+        root.replyCount = Number(root.replyCount || 0) + 1
+      }
+    } else {
+      comments.value.unshift(created)
+    }
+    localCommentCount.value += 1
+    showToast(replyContext.value ? '回复已发送' : '评论已发送')
+    cancelCommentComposer()
+  } catch (error) {
+    showToast(error.message || '评论发布失败')
+  } finally {
+    commentSubmitting.value = false
   }
-  if (replyContext.value) {
-    localReplies.value.push({
-      rootId: replyContext.value.root.id,
-      comment
-    })
-  } else {
-    localComments.value.unshift(comment)
-  }
-  localCommentCount.value += 1
-  showToast(replyContext.value ? '回复已发送' : '评论已发送')
-  cancelCommentComposer()
 }
 
-function resetLocalComments() {
-  localComments.value = []
-  localReplies.value = []
+function resetComments() {
+	commentRequestVersion += 1
+  comments.value = []
+  commentsPage.value = 1
+  commentsHasMore.value = false
+  commentsError.value = ''
   localCommentCount.value = 0
+}
+
+function selectCommentImage(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('评论图片不能超过10MB')
+    return
+  }
+  clearCommentImage()
+  commentImageFile.value = file
+  commentImagePreview.value = URL.createObjectURL(file)
+}
+
+function clearCommentImage() {
+  if (commentImagePreview.value) URL.revokeObjectURL(commentImagePreview.value)
+  commentImageFile.value = null
+  commentImagePreview.value = ''
+}
+
+async function loadComments(workId, reset = false) {
+  if ((!reset && commentsLoading.value) || !workId) return
+	const currentVersion = reset ? ++commentRequestVersion : commentRequestVersion
+  commentsLoading.value = true
+  commentsError.value = ''
+  try {
+    const nextPage = reset ? 1 : commentsPage.value + 1
+    const data = await getWorkComments(workId, { page: nextPage, pageSize: 10 })
+	if (currentVersion !== commentRequestVersion) return
+    for (const comment of data.list) {
+      comment.author.isAuthor = Number(comment.author.id) === Number(work.value.authorId)
+      for (const reply of comment.replies || []) {
+        reply.author.isAuthor = Number(reply.author.id) === Number(work.value.authorId)
+      }
+    }
+    comments.value = reset ? data.list : [...comments.value, ...data.list]
+    commentsPage.value = data.page
+    commentsHasMore.value = data.hasMore
+  } catch (error) {
+	if (currentVersion !== commentRequestVersion) return
+    commentsError.value = error.message || '评论加载失败'
+  } finally {
+	if (currentVersion === commentRequestVersion) commentsLoading.value = false
+  }
 }
 
 function isEditableTarget(target) {
@@ -322,6 +315,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleImageKeydown, true)
+  clearCommentImage()
 })
 
 function updateImageRatio(event) {
@@ -332,7 +326,7 @@ function updateImageRatio(event) {
 
 function openAuthor(author) {
   emit('open-author', {
-    authorId: work.value.authorId || work.value.id || 'mock',
+	authorId: author?.id || author?.userId || work.value.authorId || 'mock',
     author: author?.nickname || work.value.author || '咕噜用户',
     avatar: author?.avatar || work.value.avatar || ''
   })
@@ -539,7 +533,35 @@ function formatPublishedAt(value) {
             :avatar-size="34"
             @open-author="openAuthor($event.author)"
             @reply="openReplyComposer"
+            @login-request="$emit('login-request')"
           />
+          <p
+            v-if="commentsLoading && !displayComments.length"
+            class="image-work__comment-state"
+          >
+            正在加载评论...
+          </p>
+          <p
+            v-else-if="commentsError && !displayComments.length"
+            class="image-work__comment-state is-error"
+          >
+            {{ commentsError }}
+          </p>
+          <p
+            v-else-if="!displayComments.length"
+            class="image-work__comment-state"
+          >
+            还没有评论，来说点什么吧
+          </p>
+          <button
+            v-if="commentsHasMore || (commentsError && displayComments.length)"
+            class="image-work__load-comments"
+            type="button"
+            :disabled="commentsLoading"
+            @click="loadComments(work.id)"
+          >
+            {{ commentsLoading ? '加载中...' : commentsError ? '重新加载' : '加载更多评论' }}
+          </button>
         </section>
 
         <footer
@@ -564,6 +586,11 @@ function formatPublishedAt(value) {
                 :count="work.likes"
                 label="点赞作品"
                 icon-size="21"
+                :resource-id="work.id"
+                resource-type="work"
+                :model-value="Boolean(work.liked)"
+                @login-request="$emit('login-request')"
+                @change="handleWorkLikeChange"
               />
             </span>
             <button
@@ -637,6 +664,22 @@ function formatPublishedAt(value) {
                 </button>
               </div>
             </div>
+            <div
+              v-if="commentImagePreview"
+              class="comment-composer__image-preview"
+            >
+              <img
+                :src="commentImagePreview"
+                alt="待发送的评论图片"
+              >
+              <button
+                type="button"
+                aria-label="移除评论图片"
+                @click="clearCommentImage"
+              >
+                ×
+              </button>
+            </div>
             <div class="comment-composer__toolbar">
               <button
                 type="button"
@@ -647,18 +690,25 @@ function formatPublishedAt(value) {
               </button>
               <button
                 type="button"
-                aria-label="插入表情"
-                @click="insertCommentText('😊')"
+                aria-label="添加评论图片"
+                @click="commentImageInput?.click()"
               >
-                ☺
+                ▧
               </button>
+              <input
+                ref="commentImageInput"
+                class="comment-composer__file-input"
+                type="file"
+                accept="image/*"
+                @change="selectCommentImage"
+              >
               <span />
               <button
                 class="comment-composer__send"
                 type="submit"
                 :disabled="!canSubmitComment"
               >
-                发送
+                {{ commentSubmitting ? '发送中' : '发送' }}
               </button>
               <button
                 class="comment-composer__cancel"
@@ -949,6 +999,28 @@ function formatPublishedAt(value) {
   font-size: 13px;
 }
 
+.image-work__comment-state {
+  margin: 26px 0;
+  color: #9ba1aa;
+  font-size: 13px;
+  text-align: center;
+}
+
+.image-work__comment-state.is-error {
+  color: #d0525d;
+}
+
+.image-work__load-comments {
+  display: block;
+  margin: 8px auto 22px;
+  color: #315b91;
+  font-size: 13px;
+}
+
+.image-work__load-comments:disabled {
+  opacity: 0.55;
+}
+
 .image-work__actions {
   position: sticky;
   right: 0;
@@ -1090,6 +1162,38 @@ function formatPublishedAt(value) {
   align-items: center;
   gap: 8px;
   margin-top: 8px;
+}
+
+.comment-composer__file-input {
+  display: none;
+}
+
+.comment-composer__image-preview {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 9px 0 0 8px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #f3f4f5;
+}
+
+.comment-composer__image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-composer__image-preview button {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(22, 24, 28, 0.65);
+  line-height: 1;
 }
 
 .comment-composer__toolbar > button {

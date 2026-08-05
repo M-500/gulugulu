@@ -60,6 +60,12 @@ function openAuthorProfile(note) {
   router.push({ name: 'user-profile', params: { userId: note.authorId || 'mock' } })
 }
 
+function handleLikeChange({ note, result }) {
+	if (!note) return
+  note.liked = result.liked
+  note.likes = String(result.count)
+}
+
 async function resolveUserId(rawUserId) {
   if (rawUserId !== 'me') return Number(rawUserId)
   if (!authStore.user?.userId && authStore.isLoggedIn) {
@@ -86,7 +92,7 @@ async function loadProfilePage(rawUserId) {
     }
     const [userResult, worksResult] = await Promise.allSettled([
       getAppUserProfile(userId),
-      getUserPublishedWorks(userId, { page: 1, pageSize: worksPageSize.value })
+	  getUserPublishedWorks(userId, { page: 1, pageSize: worksPageSize.value, viewerUserId: authStore.user?.userId || 0 })
     ])
     if (currentVersion !== requestVersion) return
 
@@ -128,6 +134,7 @@ async function loadMoreWorks() {
     const works = await getUserPublishedWorks(userId, {
       page: worksPage.value + 1,
       pageSize: worksPageSize.value
+	  , viewerUserId: authStore.user?.userId || 0
     })
     if (currentVersion !== requestVersion) return
 
@@ -197,6 +204,8 @@ async function loadMoreWorks() {
                 :notes="visibleNotes"
                 @open-author="openAuthorProfile"
                 @open-note="openImageWork"
+                @login-request="showLoginDialog = true"
+                @like-change="handleLikeChange"
               />
               <div
                 v-if="worksHasMore || worksLoading || worksError"
@@ -228,6 +237,7 @@ async function loadMoreWorks() {
       :note="selectedImageNote"
       @login-request="showLoginDialog = true"
       @open-author="openAuthorProfile"
+      @like-change="handleLikeChange"
     />
   </div>
 </template>

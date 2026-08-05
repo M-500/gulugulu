@@ -1,0 +1,57 @@
+syntax = "v1"
+
+type (
+	CreateCommentReq {
+		WorkId          int64  `path:"workId"`
+		Content         string `json:"content,optional"`
+		ImageMediaId    int64  `json:"imageMediaId,optional"`
+		ParentCommentId int64  `json:"parentCommentId,optional"`
+	}
+
+	CommentListReq {
+		WorkId   int64 `path:"workId"`
+		Page     int64 `form:"page,optional"`
+		PageSize int64 `form:"pageSize,optional"`
+	}
+
+	CommentReplyListReq {
+		CommentId int64 `path:"commentId"`
+		Page      int64 `form:"page,optional"`
+		PageSize  int64 `form:"pageSize,optional"`
+	}
+
+	CommentAuthor {
+		UserId    int64  `json:"userId"`
+		NickName  string `json:"nickName"`
+		AvatarUrl string `json:"avatarUrl,optional"`
+	}
+
+	CommentItem {
+		CommentId      int64                `json:"commentId"`
+		WorkId         int64                `json:"workId"`
+		RootCommentId  int64                `json:"rootCommentId"`
+		ParentCommentId int64               `json:"parentCommentId"`
+		ReplyToUserId  int64                `json:"replyToUserId,optional"`
+		ReplyToName    string               `json:"replyToName,optional"`
+		Content        string               `json:"content"`
+		ImageUrl       string               `json:"imageUrl,optional"`
+		CreatedAt      string               `json:"createdAt"`
+		Author         CommentAuthor        `json:"author"`
+		Like           RecommendLikeInfo    `json:"like"`
+		ReplyCount     int64                `json:"replyCount"`
+		ReplyHasMore   bool                 `json:"replyHasMore"`
+		Replies        []CommentItem        `json:"replies"`
+	}
+
+	CreateCommentResp {
+		Comment CommentItem `json:"comment"`
+	}
+
+	CommentListResp {
+		Total    int64         `json:"total"`
+		Page     int64         `json:"page"`
+		PageSize int64         `json:"pageSize"`
+		HasMore  bool          `json:"hasMore"`
+		List     []CommentItem `json:"list"`
+	}
+)

@@ -88,12 +88,14 @@ type (
 		FavoriteCount int64               `json:"favoriteCount"`
 		CommentCount  int64               `json:"commentCount"`
 		ShareCount    int64               `json:"shareCount"`
+		ViewCount     int64               `json:"viewCount"`
 		Assets        []AppWorkAssetItem  `json:"assets"`
 		Topics        []AppWorkTopicItem  `json:"topics"`
 	}
 
 	UserPublishedWorkListReq {
 		UserId   int64 `path:"userId"`
+		ViewerUserId int64 `form:"viewerUserId,optional"`
 		Page     int64 `form:"page,optional"`
 		PageSize int64 `form:"pageSize,optional"`
 	}

@@ -9,6 +9,7 @@ require (
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.19.0
+	github.com/segmentio/kafka-go v0.4.47
 	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.10.2
 	golang.org/x/crypto v0.48.0
@@ -50,7 +51,6 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
-	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/titanous/json5 v1.0.0 // indirect

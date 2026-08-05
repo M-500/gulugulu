@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { getHomeFeed } from '@/services/feedService'
+import { useAuthStore } from '@/stores/auth'
 
 export const useFeedStore = defineStore('feed', {
   state: () => ({
@@ -13,6 +14,7 @@ export const useFeedStore = defineStore('feed', {
   }),
   actions: {
     async fetchHomeFeed({ reset = true } = {}) {
+	  const authStore = useAuthStore()
       this.loading = true
       this.error = ''
       try {
@@ -20,6 +22,7 @@ export const useFeedStore = defineStore('feed', {
         const data = await getHomeFeed({
           page: nextPage,
           pageSize: this.pageSize
+		  , userId: authStore.user?.userId || 0
         })
         this.items = reset ? data.list : [...this.items, ...data.list]
         this.page = data.page

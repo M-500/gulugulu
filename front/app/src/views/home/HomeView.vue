@@ -71,6 +71,12 @@ function openImageWork(note) {
 function openAuthorProfile(note) {
   router.push({ name: 'user-profile', params: { userId: note.authorId || note.id || 'mock' } })
 }
+
+function handleLikeChange({ note, result }) {
+	if (!note) return
+  note.liked = result.liked
+  note.likes = String(result.count)
+}
 </script>
 
 <template>
@@ -106,6 +112,8 @@ function openAuthorProfile(note) {
             :notes="notes"
             @open-author="openAuthorProfile"
             @open-note="openImageWork"
+            @login-request="showLoginDialog = true"
+            @like-change="handleLikeChange"
           />
           <div
             v-if="feedStore.hasMore || feedStore.loading"
@@ -132,6 +140,7 @@ function openAuthorProfile(note) {
       :note="selectedImageNote"
       @login-request="showLoginDialog = true"
       @open-author="openAuthorProfile"
+      @like-change="handleLikeChange"
     />
   </div>
 </template>

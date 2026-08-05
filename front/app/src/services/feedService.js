@@ -1,10 +1,11 @@
 import { request } from '@/services/http'
 
-export async function getHomeFeed({ page = 1, pageSize = 20 } = {}) {
+export async function getHomeFeed({ page = 1, pageSize = 20, userId = 0 } = {}) {
   const query = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize)
   })
+	if (Number(userId) > 0) query.set('userId', String(userId))
   const data = await request(`/app/v1/recommend/works?${query.toString()}`)
 
   return {
@@ -25,6 +26,7 @@ export function mapRecommendWorkToNote(item) {
     avatar: item.author?.avatarUrl || '',
     image: item.coverUrl || '',
     likes: item.like?.text || String(item.like?.count || 0),
+	liked: Boolean(item.like?.liked),
     isVideo: item.type === 'video',
     quote: item.coverUrl ? '' : item.contentExcerpt,
     tone: item.type === 'video' ? 'dark' : 'paper',

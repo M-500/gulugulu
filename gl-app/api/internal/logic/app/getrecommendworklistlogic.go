@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"gl-app/api/internal/constants"
 	"gl-app/api/internal/svc"
 	"gl-app/api/internal/types"
 
@@ -39,13 +40,18 @@ func (l *GetRecommendWorkListLogic) GetRecommendWorkList(req *types.RecommendWor
 		Page: page, PageSize: pageSize, HasMore: hasMore,
 		List: make([]types.RecommendWorkItem, 0, len(rows)),
 	}
+	workIDs := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		workIDs = append(workIDs, row.ID)
+	}
+	likes := queryWorkLikes(l.ctx, l.svcCtx, req.UserID, workIDs)
 	for _, row := range rows {
 		item := types.RecommendWorkItem{
 			WorkId: row.ID, Type: row.Type, Title: row.Title,
 			ContentExcerpt: strings.TrimSpace(row.ContentExcerpt), DurationMs: row.DurationMs,
 			Author: types.RecommendAuthorItem{UserId: row.AuthorID, NickName: normalizeAuthorName(row.AuthorName),
 				AvatarUrl: buildAppPublicAvatarURL(l.svcCtx, row.AuthorAvatar)},
-			Like: mockRecommendLike(row.ID),
+			Like: likes[row.ID],
 		}
 		if row.PublishedAt != nil {
 			item.PublishedAt = row.PublishedAt.Format(time.RFC3339)
@@ -89,10 +95,23 @@ func normalizeAuthorName(name string) string {
 	return name
 }
 
-func mockRecommendLike(workID int64) types.RecommendLikeInfo {
-	// 点赞表还没有接入，先用作品ID生成稳定假数据，避免每次刷新跳变。
-	count := int64(37) + (workID*97)%23800
-	return types.RecommendLikeInfo{Liked: false, Count: count, Text: formatLikeText(count)}
+func queryWorkLikes(ctx context.Context, svcCtx *svc.ServiceContext, viewerUserID int64, workIDs []int64) map[int64]types.RecommendLikeInfo {
+	result := make(map[int64]types.RecommendLikeInfo, len(workIDs))
+	rows, err := svcCtx.InteractiveRepo.FindByResourceIDs(ctx, workIDs, constants.WorkType)
+	likedStates := make(map[int64]bool)
+	if viewerUserID > 0 {
+		if values, likedErr := svcCtx.InteractiveRepo.FindUserLikedResourceIDs(ctx, viewerUserID, workIDs, constants.WorkType); likedErr == nil {
+			likedStates = values
+		}
+	}
+	for _, workID := range workIDs {
+		count := int64(0)
+		if err == nil && rows[workID] != nil {
+			count = rows[workID].LikeCount
+		}
+		result[workID] = types.RecommendLikeInfo{Liked: likedStates[workID], Count: count, Text: formatLikeText(count)}
+	}
+	return result
 }
 
 func formatLikeText(count int64) string {
