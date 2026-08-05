@@ -19,10 +19,10 @@
       </p>
 
       <footer>
-        <button type="button" :disabled="submitting" @click="$emit('close')">再看看</button>
-        <button class="is-approve" type="button" :disabled="submitting" @click="$emit('confirm')">
+        <el-button type="info" :disabled="submitting" @click="$emit('close')">再看看</el-button >
+        <el-button  type="primary" :disabled="submitting" @click="$emit('confirm')">
           {{ submitting ? '正在提交…' : '确认通过' }}
-        </button>
+        </el-button>
       </footer>
     </section>
   </div>
