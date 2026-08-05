@@ -48,15 +48,15 @@ const notes = computed(() => {
   })
 })
 
-onMounted(() => {
-  feedStore.fetchHomeFeed()
+onMounted(async () => {
   if (authStore.isLoggedIn) {
-    authStore.fetchUserInfo().catch(() => {})
+	await authStore.fetchUserInfo().catch(() => {})
   } else {
     window.setTimeout(() => {
       showLoginDialog.value = true
     }, 500)
   }
+	feedStore.fetchHomeFeed()
 })
 
 function handleChannelChange() {
@@ -134,7 +134,10 @@ function handleLikeChange({ note, result }) {
 
     <FloatingActions />
     <MobileTabBar @login-request="showLoginDialog = true" />
-    <LoginDialog v-model:show="showLoginDialog" />
+    <LoginDialog
+      v-model:show="showLoginDialog"
+      @success="feedStore.fetchHomeFeed()"
+    />
     <ImageWorkDialog
       v-model:show="showImageDialog"
       :note="selectedImageNote"

@@ -14,15 +14,15 @@ export const useFeedStore = defineStore('feed', {
   }),
   actions: {
     async fetchHomeFeed({ reset = true } = {}) {
-	  const authStore = useAuthStore()
+      const authStore = useAuthStore()
       this.loading = true
       this.error = ''
       try {
         const nextPage = reset ? 1 : this.page + 1
         const data = await getHomeFeed({
           page: nextPage,
-          pageSize: this.pageSize
-		  , userId: authStore.user?.userId || 0
+		  pageSize: this.pageSize,
+		  userId: authStore.user?.userId || 0
         })
         this.items = reset ? data.list : [...this.items, ...data.list]
         this.page = data.page

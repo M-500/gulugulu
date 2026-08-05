@@ -86,6 +86,9 @@ async function loadProfilePage(rawUserId) {
   worksHasMore.value = false
 
   try {
+	if (authStore.isLoggedIn && !authStore.user?.userId) {
+	  await authStore.fetchUserInfo().catch(() => {})
+	}
     const userId = await resolveUserId(rawUserId)
     if (!Number.isInteger(userId) || userId <= 0) {
       throw new Error('用户ID不正确')
@@ -133,8 +136,8 @@ async function loadMoreWorks() {
   try {
     const works = await getUserPublishedWorks(userId, {
       page: worksPage.value + 1,
-      pageSize: worksPageSize.value
-	  , viewerUserId: authStore.user?.userId || 0
+	  pageSize: worksPageSize.value,
+	  viewerUserId: authStore.user?.userId || 0
     })
     if (currentVersion !== requestVersion) return
 
@@ -231,7 +234,10 @@ async function loadMoreWorks() {
     </main>
 
     <MobileTabBar @login-request="showLoginDialog = true" />
-    <LoginDialog v-model:show="showLoginDialog" />
+    <LoginDialog
+      v-model:show="showLoginDialog"
+      @success="loadProfilePage(route.params.userId)"
+    />
     <ImageWorkDialog
       v-model:show="showImageDialog"
       :note="selectedImageNote"

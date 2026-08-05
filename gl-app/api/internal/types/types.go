@@ -376,10 +376,10 @@ type UserProfileResp struct {
 }
 
 type UserPublishedWorkListReq struct {
-	UserId   int64 `path:"userId"`
+	UserId       int64 `path:"userId"`
 	ViewerUserId int64 `form:"viewerUserId,optional"`
-	Page     int64 `form:"page,optional"`
-	PageSize int64 `form:"pageSize,optional"`
+	Page         int64 `form:"page,optional"`
+	PageSize     int64 `form:"pageSize,optional"`
 }
 
 type UserPublishedWorkListResp struct {

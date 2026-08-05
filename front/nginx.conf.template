@@ -1,0 +1,77 @@
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+
+    # 支持视频及批量图片上传，具体大小仍可由后端继续校验。
+    client_max_body_size 5g;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript application/xml image/svg+xml;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # CMS 独立部署在 /cms/，同时兼容 History 路由刷新。
+    location = /cms {
+        return 301 /cms/;
+    }
+
+    location ^~ /cms/ {
+        try_files $uri $uri/ /cms/index.html;
+    }
+
+    # go-zero 后端接口保持原始 URI 转发。
+    location ~ ^/(app|api|na)/ {
+        resolver 127.0.0.11 ipv6=off valid=30s;
+        set $api_backend ${API_UPSTREAM};
+        proxy_pass $api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;
+        proxy_redirect off;
+    }
+
+    # 代理 MinIO 服务端接口及项目使用的三个存储桶，浏览器可以通过当前域名访问。
+    location ~ ^/(minio|gulugulu-temp|gulugulu-media|gulugulu-public)/ {
+        resolver 127.0.0.11 ipv6=off valid=30s;
+        set $minio_backend ${MINIO_UPSTREAM};
+        proxy_pass $minio_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_redirect off;
+    }
+
+    # App 位于站点根路径，并兼容 Vue Router History 模式。
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(?:css|js|mjs|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$ {
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800, immutable";
+        try_files $uri =404;
+    }
+}

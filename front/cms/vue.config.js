@@ -1,6 +1,8 @@
 const { defineConfig } = require('@vue/cli-service')
 
 module.exports = defineConfig({
+  // 生产镜像中 CMS 位于 /cms/；开发环境仍使用根路径，不影响本地启动。
+  publicPath: process.env.VUE_APP_PUBLIC_PATH || '/',
   transpileDependencies: true,
   devServer: {
     port: 8081,

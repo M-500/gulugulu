@@ -36,14 +36,26 @@ func (r *interactiveRepoImpl) FindOneByResourceID(ctx context.Context, resourceI
 }
 
 func (r *interactiveRepoImpl) FindByResourceIDs(ctx context.Context, resourceIDs []int64, bizType constants.BizType) (map[int64]*InteractiveModel, error) {
-	return r.dao.FindByResourceIDs(ctx, resourceIDs, bizType)
+	rows, err := r.dao.FindByResourceIDs(ctx, resourceIDs, bizType)
+	if err != nil {
+		return nil, err
+	}
+	latest, cacheErr := r.cache.OverlayResourceLikeCounts(ctx, resourceIDs, bizType, rows)
+	if cacheErr != nil {
+		return rows, nil
+	}
+	return latest, nil
 }
 
 func (r *interactiveRepoImpl) FindUserLikedResourceIDs(ctx context.Context, userID int64, resourceIDs []int64, bizType constants.BizType) (map[int64]bool, error) {
 	states, err := r.dao.FindUserLikedResourceIDs(ctx, userID, resourceIDs, bizType)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	latest, cacheErr := r.cache.OverlayUserLikedStates(ctx, userID, resourceIDs, bizType, states)
-	if cacheErr != nil { return states, nil }
+	if cacheErr != nil {
+		return states, nil
+	}
 	return latest, nil
 }
 

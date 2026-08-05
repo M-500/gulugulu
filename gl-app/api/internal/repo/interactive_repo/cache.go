@@ -11,6 +11,7 @@ import (
 )
 
 type LikeStateCache interface {
+	OverlayResourceLikeCounts(ctx context.Context, resourceIDs []int64, bizType constants.BizType, fallback map[int64]*InteractiveModel) (map[int64]*InteractiveModel, error)
 	OverlayUserLikedStates(ctx context.Context, userID int64, resourceIDs []int64, bizType constants.BizType, fallback map[int64]bool) (map[int64]bool, error)
 	MutateIfPresent(ctx context.Context, userID, resourceID int64, bizType constants.BizType, liked bool) (LikeMutation, bool, error)
 	Mutate(ctx context.Context, userID, resourceID int64, bizType constants.BizType, liked, initialLiked bool, initialCount, initialVersion int64) (LikeMutation, error)
@@ -22,17 +23,54 @@ func NewLikeStateCache(client redisv9.UniversalClient) LikeStateCache {
 	return &likeStateCacheImpl{redis: client}
 }
 
+func (c *likeStateCacheImpl) OverlayResourceLikeCounts(ctx context.Context, resourceIDs []int64, bizType constants.BizType, fallback map[int64]*InteractiveModel) (map[int64]*InteractiveModel, error) {
+	if len(resourceIDs) == 0 {
+		return fallback, nil
+	}
+	keys := make([]string, 0, len(resourceIDs))
+	for _, resourceID := range resourceIDs {
+		keys = append(keys, fmt.Sprintf("interaction:like:%s:%d:count", bizType, resourceID))
+	}
+	values, err := c.redis.MGet(ctx, keys...).Result()
+	if err != nil {
+		return fallback, err
+	}
+	for index, value := range values {
+		if value == nil {
+			continue
+		}
+		count, parseErr := strconv.ParseInt(fmt.Sprint(value), 10, 64)
+		if parseErr != nil {
+			continue
+		}
+		resourceID := resourceIDs[index]
+		row := fallback[resourceID]
+		if row == nil {
+			row = &InteractiveModel{ResourceID: resourceID, ResourceType: bizType}
+			fallback[resourceID] = row
+		}
+		row.LikeCount = count
+	}
+	return fallback, nil
+}
+
 // OverlayUserLikedStates 优先采用 Redis 中尚未异步落库的最新状态，缓存缺失项沿用数据库结果。
 func (c *likeStateCacheImpl) OverlayUserLikedStates(ctx context.Context, userID int64, resourceIDs []int64, bizType constants.BizType, fallback map[int64]bool) (map[int64]bool, error) {
-	if len(resourceIDs) == 0 { return fallback, nil }
+	if len(resourceIDs) == 0 {
+		return fallback, nil
+	}
 	keys := make([]string, 0, len(resourceIDs))
 	for _, resourceID := range resourceIDs {
 		keys = append(keys, fmt.Sprintf("interaction:like:%s:%d:user:%d", bizType, resourceID, userID))
 	}
 	values, err := c.redis.MGet(ctx, keys...).Result()
-	if err != nil { return fallback, err }
+	if err != nil {
+		return fallback, err
+	}
 	for index, value := range values {
-		if value == nil { continue }
+		if value == nil {
+			continue
+		}
 		fallback[resourceIDs[index]] = fmt.Sprint(value) == "1"
 	}
 	return fallback, nil
