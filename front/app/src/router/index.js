@@ -16,6 +16,14 @@ const routes = [
     meta: {
       title: '用户主页'
     }
+  },
+  {
+    path: '/notifications',
+    name: 'notifications',
+    component: () => import('@/views/notifications/NotificationsView.vue'),
+    meta: {
+      title: '通知'
+    }
   }
 ]
 

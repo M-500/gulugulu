@@ -1,6 +1,6 @@
 ARG NODE_IMAGE=node:20-alpine
 ARG NGINX_IMAGE=nginx:1.27-alpine
-ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 
 # App 与 CMS 分别在自己的构建阶段安装依赖，避免 node_modules 在阶段继承时丢失。
 FROM ${NODE_IMAGE} AS app-build
@@ -9,8 +9,7 @@ ENV NODE_ENV=development
 ARG NPM_REGISTRY
 COPY app/package.json app/package-lock.json ./
 # npm 依赖安装和构建工具校验必须处于同一层，防止异常中断的 node_modules 被缓存。
-RUN npm ci --include=dev --registry="${NPM_REGISTRY}" --replace-registry-host=always \
-    && test -x node_modules/.bin/vite
+RUN npm install --include=dev --registry="${NPM_REGISTRY}" 
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 COPY app/ ./
@@ -21,8 +20,7 @@ WORKDIR /workspace/cms
 ENV NODE_ENV=development
 ARG NPM_REGISTRY
 COPY cms/package.json cms/package-lock.json ./
-RUN npm ci --include=dev --registry="${NPM_REGISTRY}" --replace-registry-host=always \
-    && test -x node_modules/.bin/vue-cli-service
+RUN npm install --include=dev --registry="${NPM_REGISTRY}" 
 ARG VUE_APP_API_BASE_URL=""
 ARG VUE_APP_PUBLIC_PATH="/cms/"
 ENV VUE_APP_API_BASE_URL=${VUE_APP_API_BASE_URL} \

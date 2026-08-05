@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import Avatar from '@/components/Avatar/avatar.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
@@ -8,7 +9,12 @@ import { useAuthStore } from '@/stores/auth'
 
 const emit = defineEmits(['login-request'])
 const authStore = useAuthStore()
-const items = computed(() => primaryNavItems.filter((item) => item.key !== 'profile').slice(0, 7))
+const route = useRoute()
+const items = computed(() => primaryNavItems.filter((item) => item.key !== 'profile'))
+
+function isNavActive(item) {
+  return Boolean(item.routeName && route.name === item.routeName)
+}
 </script>
 
 <template>
@@ -20,8 +26,8 @@ const items = computed(() => primaryNavItems.filter((item) => item.key !== 'prof
       v-for="item in items"
       :key="item.key"
       class="mobile-tabbar__item"
-      :class="{ active: item.active }"
-      to="/"
+      :class="{ active: isNavActive(item) }"
+      :to="item.to || '/'"
       :aria-label="item.label"
     >
       <BaseIcon

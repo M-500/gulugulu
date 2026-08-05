@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 
 import Avatar from '@/components/Avatar/avatar.vue'
@@ -9,6 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const emit = defineEmits(['login-request'])
 const authStore = useAuthStore()
+const route = useRoute()
 const moreMenuRef = ref(null)
 const showMoreMenu = ref(false)
 const visiblePrimaryNavItems = computed(() => primaryNavItems.filter((item) => item.key !== 'profile'))
@@ -50,6 +52,10 @@ function handleKeydown(event) {
     showMoreMenu.value = false
   }
 }
+
+function isNavActive(item) {
+  return Boolean(item.routeName && route.name === item.routeName)
+}
 </script>
 
 <template>
@@ -73,8 +79,8 @@ function handleKeydown(event) {
         v-for="item in visiblePrimaryNavItems"
         :key="item.key"
         class="sidebar-link"
-        :class="{ active: item.active }"
-        to="/"
+        :class="{ active: isNavActive(item) }"
+        :to="item.to || '/'"
       >
         <span class="sidebar-icon">
           <BaseIcon

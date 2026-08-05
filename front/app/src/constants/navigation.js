@@ -1,11 +1,7 @@
 export const primaryNavItems = [
-  { key: 'home', label: '首页', icon: 'home', active: true },
-  { key: 'worldcup', label: '世界杯', icon: 'ball' },
-  { key: 'ai', label: '点点', icon: 'message', badge: 'ai' },
-  { key: 'red', label: 'RED', icon: 'play' },
-  { key: 'live', label: '直播', icon: 'video' },
-  { key: 'publish', label: '发布', icon: 'plus' },
-  { key: 'notice', label: '通知', icon: 'bell' },
+  { key: 'home', label: '首页', icon: 'home', to: '/', routeName: 'home' },
+  { key: 'publish', label: '发布', icon: 'plus', to: '/' },
+  { key: 'notice', label: '通知', icon: 'bell', to: '/notifications', routeName: 'notifications' },
   { key: 'profile', label: '我', icon: 'user' }
 ]
 
