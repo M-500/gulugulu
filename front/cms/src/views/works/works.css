@@ -56,6 +56,12 @@
   padding-left: 12px;
 }
 
+.works-search__icon {
+  width: 21px;
+  height: 21px;
+  color: #7d8490;
+}
+
 .works-search input {
   min-width: 0;
   border: 0;

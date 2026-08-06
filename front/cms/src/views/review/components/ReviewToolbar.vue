@@ -13,7 +13,12 @@
         <option value="video">视频作品</option>
       </select>
       <label>
-        <span>⌕</span>
+        <SvgIcon
+          class="review-toolbar__search-icon"
+          name="search"
+          :size="21"
+          color="currentColor"
+        />
         <input
           :value="keyword"
           type="search"

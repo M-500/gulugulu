@@ -13,7 +13,12 @@
     </nav>
 
     <form class="works-search" role="search" @submit.prevent="$emit('search')">
-      <span>⌕</span>
+      <SvgIcon
+        class="works-search__icon"
+        name="search"
+        :size="21"
+        color="currentColor"
+      />
       <input
         :value="keyword"
         type="search"

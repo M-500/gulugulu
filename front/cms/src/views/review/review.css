@@ -48,6 +48,13 @@
   padding: 0 12px;
 }
 
+.review-toolbar__search-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  color: #7d8490;
+}
+
 .review-toolbar__filters label {
   display: flex;
   width: 240px;

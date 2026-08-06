@@ -37,8 +37,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getCurrentUser } from '@/api/profile'
@@ -53,16 +53,27 @@ import ReviewCenterView from '../review/ReviewCenterView.vue'
 import ProfileView from '../profile/ProfileView.vue'
 import { dashboardMenus } from './dashboardMenus'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const activeMenu = ref('home')
+const availableMenuKeys = new Set([...dashboardMenus.map((item) => item.key), 'profile'])
+const activeMenu = ref(resolveMenu(route.query.section))
 const menuOpen = ref(false)
 const reviewCount = ref(0)
-const editingWorkId = ref(null)
+const editingWorkId = ref(resolveWorkId(route.query.edit))
 const currentMenu = computed(() => dashboardMenus.find((item) => item.key === activeMenu.value))
 
 onMounted(loadProfile)
+
+// URL 是当前栏目状态的唯一持久化来源，刷新和浏览器前进后退都会恢复原页面。
+watch(
+  () => [route.query.section, route.query.edit],
+  ([section, edit]) => {
+    activeMenu.value = resolveMenu(section)
+    editingWorkId.value = activeMenu.value === 'publish' ? resolveWorkId(edit) : null
+  }
+)
 
 async function loadProfile() {
   try {
@@ -73,19 +84,16 @@ async function loadProfile() {
 }
 
 function handleMenuSelect(key) {
-  if (key !== 'publish') editingWorkId.value = null
-  activeMenu.value = key
   menuOpen.value = false
+  navigateToSection(key)
 }
 
 function openWorkEdit(workId) {
-  editingWorkId.value = workId
-  activeMenu.value = 'publish'
+  navigateToSection('publish', workId)
 }
 
 function closeWorkEdit() {
-  editingWorkId.value = null
-  activeMenu.value = 'works'
+  navigateToSection('works')
 }
 
 function logout() {
@@ -94,8 +102,24 @@ function logout() {
 }
 
 function openProfile() {
-  activeMenu.value = 'profile'
   menuOpen.value = false
+  navigateToSection('profile')
+}
+
+function navigateToSection(section, editWorkId = null) {
+  const query = section === 'home' ? {} : { section }
+  if (section === 'publish' && editWorkId) query.edit = String(editWorkId)
+  router.push({ name: 'Dashboard', query })
+}
+
+function resolveMenu(section) {
+  const key = String(section || '')
+  return availableMenuKeys.has(key) ? key : 'home'
+}
+
+function resolveWorkId(value) {
+  const workId = Number(value)
+  return Number.isInteger(workId) && workId > 0 ? workId : null
 }
 </script>
 
