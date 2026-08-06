@@ -5,76 +5,13 @@ type AppUserProfileReq struct {
 	UserId int64 `path:"userId"`
 }
 
-type LikeResourceReq struct {
-	ResourceType string `path:"resourceType"`
-	ResourceId   int64  `path:"resourceId"`
-}
-
-type LikeResourceResp struct {
-	ResourceType string `json:"resourceType"`
-	ResourceId   int64  `json:"resourceId"`
-	Liked        bool   `json:"liked"`
-	Count        int64  `json:"count"`
-}
-
-type CreateCommentReq struct {
-	WorkId          int64  `path:"workId"`
-	Content         string `json:"content,optional"`
-	ImageMediaId    int64  `json:"imageMediaId,optional"`
-	ParentCommentId int64  `json:"parentCommentId,optional"`
-}
-
-type CommentListReq struct {
-	WorkId   int64 `path:"workId"`
-	Page     int64 `form:"page,optional"`
-	PageSize int64 `form:"pageSize,optional"`
-}
-
-type CommentReplyListReq struct {
-	CommentId int64 `path:"commentId"`
-	Page      int64 `form:"page,optional"`
-	PageSize  int64 `form:"pageSize,optional"`
-}
-
-type CommentAuthor struct {
-	UserId    int64  `json:"userId"`
-	NickName  string `json:"nickName"`
-	AvatarUrl string `json:"avatarUrl,optional"`
-}
-
-type CommentItem struct {
-	CommentId       int64             `json:"commentId"`
-	WorkId          int64             `json:"workId"`
-	RootCommentId   int64             `json:"rootCommentId"`
-	ParentCommentId int64             `json:"parentCommentId"`
-	ReplyToUserId   int64             `json:"replyToUserId,optional"`
-	ReplyToName     string            `json:"replyToName,optional"`
-	Content         string            `json:"content"`
-	ImageUrl        string            `json:"imageUrl,optional"`
-	CreatedAt       string            `json:"createdAt"`
-	Author          CommentAuthor     `json:"author"`
-	Like            RecommendLikeInfo `json:"like"`
-	ReplyCount      int64             `json:"replyCount"`
-	ReplyHasMore    bool              `json:"replyHasMore"`
-	Replies         []CommentItem     `json:"replies"`
-}
-
-type CreateCommentResp struct {
-	Comment CommentItem `json:"comment"`
-}
-
-type CommentListResp struct {
-	Total    int64         `json:"total"`
-	Page     int64         `json:"page"`
-	PageSize int64         `json:"pageSize"`
-	HasMore  bool          `json:"hasMore"`
-	List     []CommentItem `json:"list"`
-}
-
 type AppUserProfileResp struct {
 	UserId    int64  `json:"userId"`
 	NickName  string `json:"nickName"`
 	AvatarUrl string `json:"avatarUrl,optional"`
+	Sex       int64  `json:"sex,optional"`
+	IpAddress string `json:"ipAddress,optional"`
+	Bio       string `json:"bio"`
 }
 
 type AppWorkAssetItem struct {
@@ -189,6 +126,49 @@ type CaptchaResp struct {
 	CaptchaPath string `json:"captchaPath"`
 }
 
+type CommentAuthor struct {
+	UserId    int64  `json:"userId"`
+	NickName  string `json:"nickName"`
+	AvatarUrl string `json:"avatarUrl,optional"`
+}
+
+type CommentItem struct {
+	CommentId       int64             `json:"commentId"`
+	WorkId          int64             `json:"workId"`
+	RootCommentId   int64             `json:"rootCommentId"`
+	ParentCommentId int64             `json:"parentCommentId"`
+	ReplyToUserId   int64             `json:"replyToUserId,optional"`
+	ReplyToName     string            `json:"replyToName,optional"`
+	Content         string            `json:"content"`
+	ImageUrl        string            `json:"imageUrl,optional"`
+	CreatedAt       string            `json:"createdAt"`
+	Author          CommentAuthor     `json:"author"`
+	Like            RecommendLikeInfo `json:"like"`
+	ReplyCount      int64             `json:"replyCount"`
+	ReplyHasMore    bool              `json:"replyHasMore"`
+	Replies         []CommentItem     `json:"replies"`
+}
+
+type CommentListReq struct {
+	WorkId   int64 `path:"workId"`
+	Page     int64 `form:"page,optional"`
+	PageSize int64 `form:"pageSize,optional"`
+}
+
+type CommentListResp struct {
+	Total    int64         `json:"total"`
+	Page     int64         `json:"page"`
+	PageSize int64         `json:"pageSize"`
+	HasMore  bool          `json:"hasMore"`
+	List     []CommentItem `json:"list"`
+}
+
+type CommentReplyListReq struct {
+	CommentId int64 `path:"commentId"`
+	Page      int64 `form:"page,optional"`
+	PageSize  int64 `form:"pageSize,optional"`
+}
+
 type CompleteUploadReq struct {
 	MediaId   int64  `json:"mediaId"`
 	ObjectKey string `json:"objectKey"`
@@ -200,6 +180,17 @@ type CompleteUploadResp struct {
 	Bucket     string `json:"bucket"`
 	ObjectKey  string `json:"objectKey"`
 	PreviewUrl string `json:"previewUrl"`
+}
+
+type CreateCommentReq struct {
+	WorkId          int64  `path:"workId"`
+	Content         string `json:"content,optional"`
+	ImageMediaId    int64  `json:"imageMediaId,optional"`
+	ParentCommentId int64  `json:"parentCommentId,optional"`
+}
+
+type CreateCommentResp struct {
+	Comment CommentItem `json:"comment"`
 }
 
 type CreateUploadPresignReq struct {
@@ -266,6 +257,18 @@ type CreatorWorkListResp struct {
 type CreatorWorkMutationResp struct {
 	WorkId  int64 `json:"workId"`
 	Updated bool  `json:"updated"`
+}
+
+type LikeResourceReq struct {
+	ResourceType string `path:"resourceType"`
+	ResourceId   int64  `path:"resourceId"`
+}
+
+type LikeResourceResp struct {
+	ResourceType string `json:"resourceType"`
+	ResourceId   int64  `json:"resourceId"`
+	Liked        bool   `json:"liked"`
+	Count        int64  `json:"count"`
 }
 
 type LoginReq struct {
@@ -370,9 +373,9 @@ type UserProfileResp struct {
 	Email     string `json:"email"`
 	NickName  string `json:"nickName"`
 	AvatarUrl string `json:"avatarUrl,optional"`
-	Bio       string `json:"bio"`
-	Sex       int64  `json:"sex"`
-	BothDay   string `json:"bothDay"`
+	Bio       string `json:"bio"`     // 用户简介
+	Sex       int64  `json:"sex"`     // 0保密、1男、2女
+	BothDay   string `json:"bothDay"` // 用户生日，格式YYYY-MM-DD
 }
 
 type UserPublishedWorkListReq struct {

@@ -48,17 +48,36 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/works/:workId/playlist",
 				Handler: app.GetAppWorkPlaylistHandler(serverCtx),
 			},
+		},
+		rest.WithPrefix("/app/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
 			{
-				// 分页获取作品一级评论
-				Method:  http.MethodGet,
+				// 评论作品或回复评论
+				Method:  http.MethodPost,
 				Path:    "/works/:workId/comments",
-				Handler: comment.GetCommentListHandler(serverCtx),
+				Handler: comment.CreateCommentHandler(serverCtx),
 			},
+		},
+		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
 			{
-				// 分页获取一级评论下的回复
+				// 分页获取一级评论下的剩余回复
 				Method:  http.MethodGet,
 				Path:    "/comments/:commentId/replies",
 				Handler: comment.GetCommentReplyListHandler(serverCtx),
+			},
+			{
+				// 分页获取作品一级评论，默认10条
+				Method:  http.MethodGet,
+				Path:    "/works/:workId/comments",
+				Handler: comment.GetCommentListHandler(serverCtx),
 			},
 		},
 		rest.WithPrefix("/app/v1"),
@@ -77,12 +96,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodDelete,
 				Path:    "/interactions/:resourceType/:resourceId/like",
 				Handler: interactive.UnlikeResourceHandler(serverCtx),
-			},
-			{
-				// 评论作品或回复评论
-				Method:  http.MethodPost,
-				Path:    "/works/:workId/comments",
-				Handler: comment.CreateCommentHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),

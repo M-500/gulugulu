@@ -34,10 +34,13 @@ func (l *GetAppUserProfileLogic) GetAppUserProfile(req *types.AppUserProfileReq)
 	if err != nil {
 		return nil, err
 	}
-
-	return &types.AppUserProfileResp{
+	res := types.AppUserProfileResp{
 		UserId:    userInfo.ID,
 		NickName:  normalizeAuthorName(userInfo.Nickname),
+		Bio:       userInfo.Bio,
+		Sex:       userInfo.Sex,
+		IpAddress: userInfo.IPAddress,
 		AvatarUrl: buildAppPublicAvatarURL(l.svcCtx, userInfo.Avatar),
-	}, nil
+	}
+	return &res, nil
 }

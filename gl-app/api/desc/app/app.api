@@ -17,6 +17,9 @@ type (
 		UserId    int64  `json:"userId"`
 		NickName  string `json:"nickName"`
 		AvatarUrl string `json:"avatarUrl,optional"`
+		Sex int64 `json:"sex,optional"`
+		IpAddress string `json:"ipAddress,optional"`
+		Bio string `json:"bio"`
 	}
 
 	AppWorkDetailReq {
