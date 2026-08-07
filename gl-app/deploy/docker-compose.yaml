@@ -34,7 +34,7 @@ services:
           cpus: "4"
           memory: 8G
   kafka:
-    image: hub.ounum.com/base/bitnami/kafka:3.9.0
+    image: bitnami/kafka:3.9.0
     container_name: gulugulu-kafka
     restart: always
     ulimits:
