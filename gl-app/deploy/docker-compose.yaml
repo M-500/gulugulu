@@ -12,6 +12,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - gulugulu-network
   mysql:
     image: mysql:8.0
     container_name: gulugulu-mysql
@@ -33,6 +35,8 @@ services:
         limits:
           cpus: "4"
           memory: 8G
+    networks:
+      - gulugulu-network
   kafka:
     image: bitnami/kafka:3.9.0
     container_name: gulugulu-kafka
@@ -53,6 +57,8 @@ services:
     ports:
       - '19192:9092'
       - '19194:9094'
+    networks:
+      - gulugulu-network
 
   minio:
     image: minio/minio:RELEASE.2025-01-20T14-49-07Z
@@ -100,7 +106,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - gulugulu-network
 volumes:
   minio_data:
   redis_data:
   kafka_data:
+
+networks:
+  gulugulu-network:
+    name: gulugulu-network
+    driver: bridge
