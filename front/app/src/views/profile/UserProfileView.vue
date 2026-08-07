@@ -37,6 +37,12 @@ const worksTotal = ref(0)
 const worksHasMore = ref(false)
 let requestVersion = 0
 
+const isOwnProfile = computed(() => {
+  const currentUserId = Number(authStore.user?.userId)
+  const profileUserId = Number(profileUser.value?.userId)
+  return currentUserId > 0 && profileUserId > 0 && currentUserId === profileUserId
+})
+
 const visibleNotes = computed(() => {
   const value = keyword.value.trim().toLowerCase()
   if (!value) return profileNotes.value
@@ -178,6 +184,7 @@ async function loadMoreWorks() {
         <template v-else-if="profileUser">
           <ProfileHeader
             :user="profileUser"
+            :is-own-profile="isOwnProfile"
           />
           <ProfileTabs
             v-model="activeTab"

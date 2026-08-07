@@ -6,7 +6,10 @@ export async function getAppUserProfile(userId) {
   return {
     userId: data.userId,
     nickname: data.nickName || '咕噜用户',
-    avatar: data.avatarUrl || ''
+    avatar: data.avatarUrl || '',
+    bio: data.bio || '',
+    ipAddress: data.ipAddress || '',
+    sex: data.sex
   }
 }
 
