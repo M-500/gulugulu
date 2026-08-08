@@ -13,7 +13,7 @@ export const profileUser = {
   receives: 2863
 }
 
-// 后端暂未提供简介和互动统计，保留页面原有 mock，只用接口数据覆盖用户身份信息。
+// 后端暂未提供互动统计，暂时保留统计 mock；用户资料始终使用接口返回值。
 export function withProfileMock(user = {}) {
   return {
     ...profileUser,
@@ -21,7 +21,9 @@ export function withProfileMock(user = {}) {
     userId: user.userId || profileUser.userId,
     redId: String(user.userId || profileUser.redId),
     nickname: user.nickname || profileUser.nickname,
-    avatar: user.avatar !== undefined ? user.avatar : profileUser.avatar
+    avatar: user.avatar !== undefined ? user.avatar : profileUser.avatar,
+    bio: user.bio || '',
+    ipAddress: user.ipAddress || ''
   }
 }
 

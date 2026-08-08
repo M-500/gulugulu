@@ -7,51 +7,49 @@ defineProps({
   user: {
     type: Object,
     required: true
+  },
+  isOwnProfile: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
 
 <template>
   <section class="profile-header">
-    <Avatar
-      class="profile-header__avatar"
-      :avatar-url="user.avatar"
-      :username="user.nickname"
-      size="var(--profile-avatar-size)"
-    />
+    <Avatar class="profile-header__avatar"
+            :avatar-url="user.avatar"
+            :username="user.nickname"
+            size="var(--profile-avatar-size)" />
     <div class="profile-header__info">
       <div class="profile-header__top">
         <div>
           <h1>{{ user.nickname }}</h1>
-          <p>
-            咕噜号：{{ user.redId }} ｜ IP属地：{{ user.location }}
-          </p>
+          <div class="profile-header__meta">
+            <span>咕噜号：{{ user.redId }}</span>
+            <span>IP属地：{{ user.ipAddress || '未知' }}</span>
+          </div>
         </div>
         <div class="profile-header__actions">
-          <VanButton
-            type="primary"
-            round
-          >
+          <VanButton v-if="!isOwnProfile"
+                     type="primary"
+                     round>
             关注
           </VanButton>
-          <button
-            type="button"
-            aria-label="私信"
-          >
+          <button type="button"
+                  aria-label="私信">
             💬
           </button>
-          <button
-            type="button"
-            aria-label="更多"
-          >
+          <button type="button"
+                  aria-label="更多">
             ···
           </button>
         </div>
       </div>
-      <p class="profile-header__bio">
-        {{ user.bio }}
-      </p>
-      <span class="profile-header__region">{{ user.region }}</span>
+      <div class="profile-header__bio">
+        <span>{{ user.bio || '这个人很神秘，还没有填写个性签名' }}</span>
+        <!-- <p></p> -->
+      </div>
       <div class="profile-header__stats">
         <span><strong>{{ user.following }}</strong> 关注</span>
         <span><strong>{{ user.followers }}</strong> 粉丝</span>
@@ -88,8 +86,10 @@ defineProps({
   font-size: 26px;
 }
 
-.profile-header__top p {
-  margin: 0;
+.profile-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
   color: #a0a4ab;
   font-size: 13px;
 }
@@ -113,21 +113,19 @@ defineProps({
 }
 
 .profile-header__bio {
-  margin: 18px 0 12px;
+  margin-top: 18px;
+}
+
+.profile-header__bio span {
+  color: #333;
+  font-size: 14px;
+}
+
+.profile-header__bio p {
+  margin: 4px 0 0;
   color: #30333a;
   white-space: pre-line;
   line-height: 1.6;
-}
-
-.profile-header__region {
-  display: inline-flex;
-  min-height: 26px;
-  align-items: center;
-  border-radius: 999px;
-  color: #969aa2;
-  background: #f6f7f8;
-  font-size: 12px;
-  padding: 0 11px;
 }
 
 .profile-header__stats {
