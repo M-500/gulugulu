@@ -16,7 +16,7 @@
     </label>
     <div class="upload-tips">
       <div><strong>文件大小</strong><span>单个素材建议小于 4GB，最多支持 20 个文件</span></div>
-      <div><strong>素材格式</strong><span>视频支持 mp4、mov，图片支持 jpg、png、webp</span></div>
+      <div><strong>素材格式</strong><span>视频支持 mp4、mov、ts，图片支持 jpg、png、webp</span></div>
       <div><strong>编辑体验</strong><span>上传后自动保存到本地草稿，可继续编辑发布</span></div>
     </div>
   </div>

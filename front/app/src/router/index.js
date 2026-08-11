@@ -24,6 +24,10 @@ const routes = [
     meta: {
       title: '通知'
     }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'home' }
   }
 ]
 

@@ -186,10 +186,7 @@ func (w *MediaWorker) transcodeVideo(workID int64, asset mediarepo.ProcessAsset)
 		hlsTime = 6
 	}
 	command := exec.CommandContext(w.ctx, w.svcCtx.Config.MediaWorker.FFmpegPath,
-		"-y", "-i", input, "-c:v", "libx264", "-preset", "medium", "-crf", "23",
-		"-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
-		"-hls_time", strconv.Itoa(hlsTime), "-hls_playlist_type", "vod",
-		"-hls_segment_filename", segmentPattern, playlist)
+		buildTranscodeArgs(input, segmentPattern, playlist, hlsTime)...)
 	if output, commandErr := command.CombinedOutput(); commandErr != nil {
 		return fmt.Errorf("ffmpeg转码失败: %w: %s", commandErr, tail(string(output), 1500))
 	}
@@ -265,6 +262,24 @@ func (w *MediaWorker) probeVideo(input string) (videoMetadata, error) {
 		return videoMetadata{}, fmt.Errorf("文件中没有有效视频轨")
 	}
 	return metadata, nil
+}
+
+func buildTranscodeArgs(input, segmentPattern, playlist string, hlsTime int) []string {
+	args := []string{"-y"}
+	if strings.EqualFold(filepath.Ext(input), ".ts") {
+		// 采集卡和直播录制生成的 TS 可能缺少连续时间戳。生成 PTS 并把负时间
+		// 归零，避免转出的首段不可播或音画不同步。
+		args = append(args, "-fflags", "+genpts")
+	}
+
+	return append(args,
+		"-i", input,
+		"-map", "0:v:0", "-map", "0:a:0?", "-sn",
+		"-c:v", "libx264", "-preset", "medium", "-crf", "23",
+		"-c:a", "aac", "-b:a", "128k", "-avoid_negative_ts", "make_zero",
+		"-hls_time", strconv.Itoa(hlsTime), "-hls_playlist_type", "vod",
+		"-hls_segment_filename", segmentPattern, playlist,
+	)
 }
 
 func (w *MediaWorker) markFailed(workID int64, processErr error) {

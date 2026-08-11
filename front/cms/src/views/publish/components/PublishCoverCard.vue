@@ -6,7 +6,7 @@
 
     <div v-if="type === 'video'" class="video-cover-tool">
       <div class="video-cover-source">
-        <video v-if="videoAsset" ref="videoRef" :src="videoAsset.url" controls muted playsinline />
+        <LocalVideoPlayer v-if="videoAsset" ref="videoRef" :source="videoAsset" controls />
         <div v-else class="cover-empty">暂无视频素材</div>
       </div>
       <div class="video-cover-result">
@@ -30,6 +30,9 @@
 </template>
 <script setup>
 import { computed, ref } from 'vue'
+
+import LocalVideoPlayer from '@/components/LocalVideoPlayer.vue'
+
 const props = defineProps({
   type: { type: String, required: true },
   assets: { type: Array, default: () => [] },
@@ -44,6 +47,6 @@ const selectableAssets = computed(() => props.type === 'image'
 const videoAsset = computed(() => props.assets.find((asset) => asset.kind === 'video'))
 
 function captureCurrentFrame() {
-  emit('capture-frame', videoRef.value?.currentTime || 0)
+  emit('capture-frame', videoRef.value?.getCurrentTime() || 0)
 }
 </script>

@@ -30,7 +30,7 @@ type WorkRepo interface {
 	FindAuditState(ctx context.Context, workID int64) (*AuditState, error)
 	Review(ctx context.Context, input ReviewInput) (bool, error)
 	ListRecommend(ctx context.Context, limit, offset int64) ([]PublicWorkItem, error)
-	ListPublishedByUser(ctx context.Context, userID, limit, offset int64) (int64, []PublicWorkItem, error)
+	ListPublishedByUser(ctx context.Context, userID int64, includeNonPublic bool, limit, offset int64) (int64, []PublicWorkItem, error)
 	FindPublicDetail(ctx context.Context, workID int64) (*PublicWorkDetail, error)
 }
 
@@ -344,19 +344,33 @@ func (r *workRepoImpl) ListRecommend(ctx context.Context, limit, offset int64) (
 	return rows, err
 }
 
-func (r *workRepoImpl) ListPublishedByUser(ctx context.Context, userID, limit, offset int64) (int64, []PublicWorkItem, error) {
-	base := r.publicListBase(ctx).Where("w.user_id = ?", userID)
+func (r *workRepoImpl) ListPublishedByUser(ctx context.Context, userID int64, includeNonPublic bool, limit, offset int64) (int64, []PublicWorkItem, error) {
+	base := r.publishedByUserBase(ctx, userID, includeNonPublic)
 	var total int64
 	if err := base.Count(&total).Error; err != nil {
 		return 0, nil, err
 	}
 	var rows []PublicWorkItem
-	err := r.publicListBase(ctx).Where("w.user_id = ?", userID).
+	err := r.publishedByUserBase(ctx, userID, includeNonPublic).
 		Select(`w.id,w.type,w.title,LEFT(w.content,120) AS content_excerpt,w.published_at,
 			COALESCE(cover.formal_bucket,'') AS cover_bucket,COALESCE(cover.formal_object_key,'') AS cover_object_key,
 			COALESCE(video.duration_ms,0) AS duration_ms`).
 		Order("w.published_at DESC,w.id DESC").Limit(int(limit)).Offset(int(offset)).Scan(&rows).Error
 	return total, rows, err
+}
+
+func (r *workRepoImpl) publishedByUserBase(ctx context.Context, userID int64, includeNonPublic bool) *gorm.DB {
+	db := r.db.WithContext(ctx).Table("work AS w").
+		Joins("JOIN user AS u ON u.id = w.user_id AND u.deleted_at IS NULL").
+		Joins("LEFT JOIN media_asset AS cover ON cover.id = w.cover_asset_id AND cover.deleted_at IS NULL").
+		Joins("LEFT JOIN work_asset AS video_relation ON video_relation.work_id = w.id AND video_relation.role = 'video' AND video_relation.sort = 0").
+		Joins("LEFT JOIN media_asset AS video ON video.id = video_relation.media_asset_id AND video.deleted_at IS NULL").
+		Where("w.user_id = ? AND w.deleted_at IS NULL AND w.process_status = ? AND w.review_status = ? AND w.publish_status = ?",
+			userID, "succeeded", "approved", "published")
+	if !includeNonPublic {
+		db = db.Where("w.visibility = ?", "public")
+	}
+	return db
 }
 
 func (r *workRepoImpl) publicListBase(ctx context.Context) *gorm.DB {

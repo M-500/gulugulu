@@ -101,7 +101,7 @@ async function loadProfilePage(rawUserId) {
     }
     const [userResult, worksResult] = await Promise.allSettled([
       getAppUserProfile(userId),
-	  getUserPublishedWorks(userId, { page: 1, pageSize: worksPageSize.value, viewerUserId: authStore.user?.userId || 0 })
+	  getUserPublishedWorks(userId, { page: 1, pageSize: worksPageSize.value, token: authStore.accessToken })
     ])
     if (currentVersion !== requestVersion) return
 
@@ -143,7 +143,7 @@ async function loadMoreWorks() {
     const works = await getUserPublishedWorks(userId, {
       page: worksPage.value + 1,
 	  pageSize: worksPageSize.value,
-	  viewerUserId: authStore.user?.userId || 0
+	  token: authStore.accessToken
     })
     if (currentVersion !== requestVersion) return
 

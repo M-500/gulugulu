@@ -18,12 +18,12 @@ type GetUserPublishedWorkListLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-// 分页获取用户已发布的公开作品
+// 分页获取用户已发布的作品；本人可查看所有可见性，其他访问者只能查看公开作品。
 func NewGetUserPublishedWorkListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserPublishedWorkListLogic {
 	return &GetUserPublishedWorkListLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
 
-func (l *GetUserPublishedWorkListLogic) GetUserPublishedWorkList(req *types.UserPublishedWorkListReq) (*types.UserPublishedWorkListResp, error) {
+func (l *GetUserPublishedWorkListLogic) GetUserPublishedWorkList(req *types.UserPublishedWorkListReq, viewerUserID int64) (*types.UserPublishedWorkListResp, error) {
 	if req == nil || req.UserId <= 0 {
 		return nil, fmt.Errorf("用户ID不正确")
 	}
@@ -33,7 +33,8 @@ func (l *GetUserPublishedWorkListLogic) GetUserPublishedWorkList(req *types.User
 	}
 	page, pageSize := normalizeRecommendPage(req.Page, req.PageSize)
 	offset := (page - 1) * pageSize
-	total, rows, err := l.svcCtx.WorkRepo.ListPublishedByUser(l.ctx, req.UserId, pageSize, offset)
+	isOwner := viewerUserID > 0 && viewerUserID == req.UserId
+	total, rows, err := l.svcCtx.WorkRepo.ListPublishedByUser(l.ctx, req.UserId, isOwner, pageSize, offset)
 	if err != nil {
 		l.Errorf("查询用户%d已发布作品失败: %v", req.UserId, err)
 		return nil, fmt.Errorf("查询用户作品失败")
@@ -50,7 +51,7 @@ func (l *GetUserPublishedWorkListLogic) GetUserPublishedWorkList(req *types.User
 	for _, row := range rows {
 		workIDs = append(workIDs, row.ID)
 	}
-	likes := queryWorkLikes(l.ctx, l.svcCtx, req.ViewerUserId, workIDs)
+	likes := queryWorkLikes(l.ctx, l.svcCtx, viewerUserID, workIDs)
 	for _, row := range rows {
 		item := types.RecommendWorkItem{
 			WorkId: row.ID, Type: row.Type, Title: row.Title,

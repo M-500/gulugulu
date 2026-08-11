@@ -9,7 +9,7 @@ import (
 	"gl-app/api/internal/types"
 )
 
-// 分页获取用户已发布的公开作品
+// 分页获取用户已发布的作品；Bearer Token 可选，本人可查看非公开作品。
 func GetUserPublishedWorkListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.UserPublishedWorkListReq
@@ -18,8 +18,9 @@ func GetUserPublishedWorkListHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
+		viewerUserID := optionalJWTUserID(r, svcCtx.Config.JwtAuth.AccessSecret)
 		l := app.NewGetUserPublishedWorkListLogic(r.Context(), svcCtx)
-		resp, err := l.GetUserPublishedWorkList(&req)
+		resp, err := l.GetUserPublishedWorkList(&req, viewerUserID)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

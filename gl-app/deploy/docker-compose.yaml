@@ -62,7 +62,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-01-20T14-49-07Z
-    container_name: minio
+    container_name: gulugulu-minio
     restart: unless-stopped
 
     ports:
@@ -87,8 +87,8 @@ services:
       MINIO_API_CORS_ALLOW_ORIGIN: "*"
 
     volumes:
-      - ./data:/data
-      - ./config:/root/.minio
+      - ./minio/data:/data
+      - ./minio/config:/root/.minio
 
     command:
       - server
@@ -106,6 +106,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - gulugulu-network
+  api:
+    image: gl-api
+    container_name: gulugulu-api
+    ports:
+      - "8003:8888"
+    volumes:
+      - ./etc/prod.yaml:/app/etc/gulu.yaml:ro
+    init: true
+    stop_grace_period: 90s
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    networks:
+      - gulugulu-network
+  app:
+    image: gulugulu-app
+    container_name: gulugulu-app
+    environment:
+      API_UPSTREAM: http://api:8888
+      MINIO_UPSTREAM: http://minio:9000
+    ports:
+      - "80:80"
     networks:
       - gulugulu-network
 volumes:

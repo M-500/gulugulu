@@ -97,8 +97,7 @@ type (
 	}
 
 	UserPublishedWorkListReq {
-		UserId   int64 `path:"userId"`
-		ViewerUserId int64 `form:"viewerUserId,optional"`
+		UserId int64 `path:"userId"`
 		Page     int64 `form:"page,optional"`
 		PageSize int64 `form:"pageSize,optional"`
 	}

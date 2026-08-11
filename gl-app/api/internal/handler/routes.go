@@ -31,7 +31,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: app.GetAppUserProfileHandler(serverCtx),
 			},
 			{
-				// 分页获取用户已发布的公开作品
+				// 分页获取用户已发布的作品；本人可查看所有可见性
 				Method:  http.MethodGet,
 				Path:    "/users/:userId/works",
 				Handler: app.GetUserPublishedWorkListHandler(serverCtx),

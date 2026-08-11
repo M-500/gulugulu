@@ -86,6 +86,7 @@ import { completeUpload, createUploadPresign, uploadToObjectStorage } from '@/ap
 import { createWork } from '@/api/works'
 import { MAX_IMAGE_ASSETS } from '@/constants/publish'
 import { usePublishDraftStore } from '@/stores/publishDrafts'
+import { extractVideoFrame, getVideoUploadContentType, isVideoFile } from '@/utils/video'
 
 import PublishAssetsCard from './components/PublishAssetsCard.vue'
 import PublishComposeCard from './components/PublishComposeCard.vue'
@@ -238,7 +239,7 @@ async function selectImageCover(assetId) {
 async function createDraftFromFiles(fileList, draftType = activeType.value) {
   const isImageWork = draftType === 'image'
   const files = Array.from(fileList)
-    .filter((file) => isImageWork ? file.type.startsWith('image/') : file.type.startsWith('video/'))
+    .filter((file) => isImageWork ? file.type.startsWith('image/') : isVideoFile(file))
     .slice(0, isImageWork ? MAX_IMAGE_ASSETS : 1)
 
   if (!files.length) {
@@ -265,10 +266,11 @@ async function uploadFiles(files) {
 
   for (const [index, file] of files.entries()) {
     uploadMessage.value = `正在上传 ${index + 1}/${files.length}：${file.name}`
+    const videoFile = isVideoFile(file)
     const presign = await createUploadPresign({
-      resourceType: file.type.startsWith('video/') ? 'Video' : 'Image',
+      resourceType: videoFile ? 'Video' : 'Image',
       fileName: file.name,
-      contentType: file.type || 'application/octet-stream'
+      contentType: videoFile ? getVideoUploadContentType(file) : (file.type || 'application/octet-stream')
     })
 
     await uploadToObjectStorage(file, presign)
@@ -486,7 +488,10 @@ async function captureVideoCover(seconds = 0, options = {}) {
   }
 
   try {
-    const blob = await extractVideoFrame(videoAsset.blob, seconds)
+    const blob = await extractVideoFrame(videoAsset.blob, seconds, {
+      name: videoAsset.name,
+      type: videoAsset.type
+    })
     await updateDraft({
       coverBlob: blob,
       coverName: 'video-cover.jpg',
@@ -503,54 +508,6 @@ async function captureVideoCover(seconds = 0, options = {}) {
     }
     return null
   }
-}
-
-function extractVideoFrame(blob, seconds = 0) {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-    const objectUrl = URL.createObjectURL(blob)
-    let settled = false
-
-    video.preload = 'metadata'
-    video.muted = true
-    video.playsInline = true
-    video.src = objectUrl
-
-    const cleanup = () => {
-      URL.revokeObjectURL(objectUrl)
-      video.removeAttribute('src')
-      video.load()
-    }
-    const finishWithFrame = () => {
-      if (settled) {
-        return
-      }
-      settled = true
-      const canvas = document.createElement('canvas')
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob((result) => {
-        cleanup()
-        result ? resolve(result) : reject(new Error('视频封面生成失败'))
-      }, 'image/jpeg', 0.92)
-    }
-
-    video.onerror = () => {
-      settled = true
-      cleanup()
-      reject(new Error('无法加载视频，封面截取失败'))
-    }
-    video.onloadedmetadata = () => {
-      const duration = Number.isFinite(video.duration) ? video.duration : 0
-      const targetTime = Math.min(Math.max(seconds, 0), Math.max(duration - 0.1, 0))
-      video.currentTime = targetTime
-      if (targetTime === 0) {
-        video.onloadeddata = finishWithFrame
-      }
-    }
-    video.onseeked = finishWithFrame
-  })
 }
 
 async function convertImageToPng(blob) {

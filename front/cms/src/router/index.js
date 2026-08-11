@@ -24,6 +24,10 @@ const routes = [
       requiresAuth: true,
       title: '工作台'
     }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

@@ -13,13 +13,14 @@ export async function getAppUserProfile(userId) {
   }
 }
 
-export async function getUserPublishedWorks(userId, { page = 1, pageSize = 20, viewerUserId = 0 } = {}) {
+export async function getUserPublishedWorks(userId, { page = 1, pageSize = 20, token = '' } = {}) {
   const query = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize)
   })
-	if (Number(viewerUserId) > 0) query.set('viewerUserId', String(viewerUserId))
-  const data = await request(`/app/v1/users/${encodeURIComponent(userId)}/works?${query.toString()}`)
+  const data = await request(`/app/v1/users/${encodeURIComponent(userId)}/works?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
 
   return {
     total: data.total,

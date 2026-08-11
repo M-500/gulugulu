@@ -1,0 +1,31 @@
+services:
+  api:
+    image: gl-api
+    container_name: gulugulu-api
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./etc/prod.yaml:/app/etc/gulu.yaml:ro
+    init: true
+    stop_grace_period: 90s
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - gulugulu-network
+
+  app:
+    image: gulugulu-app
+    container_name: gulugulu-app
+    ports:
+      - "80:80"
+    networks:
+      - gulugulu-network

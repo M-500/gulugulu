@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { MAX_IMAGE_ASSETS } from '@/constants/publish'
+import { isVideoFile } from '@/utils/video'
 
 const DB_NAME = 'gulugulu_publish_cache'
 const DB_VERSION = 1
@@ -87,7 +88,7 @@ function formatDate(timestamp) {
 }
 
 function fileKind(file) {
-  if (file.type.startsWith('video/')) {
+  if (isVideoFile(file)) {
     return 'video'
   }
 

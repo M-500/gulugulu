@@ -56,13 +56,7 @@ func (l *CreateUploadPresignLogic) CreateUploadPresign(req *types.CreateUploadPr
 		return nil, l.logAndReturn("创建上传预签名失败", fmt.Errorf("不支持的%s格式: %s", resourceType, ext))
 	}
 
-	contentType := strings.TrimSpace(req.ContentType)
-	if contentType == "" {
-		contentType = mime.TypeByExtension(ext)
-	}
-	if contentType == "" {
-		contentType = defaultContentType(resourceType)
-	}
+	contentType := normalizeUploadContentType(resourceType, ext, req.ContentType)
 
 	expiresIn := l.svcCtx.Config.Minio.PresignExpire
 	if expiresIn <= 0 {
@@ -216,4 +210,22 @@ func defaultContentType(resourceType string) string {
 	}
 
 	return "application/octet-stream"
+}
+
+func normalizeUploadContentType(resourceType, ext, contentType string) string {
+	// 浏览器对 MPEG-TS 的识别不一致：有的返回空字符串，有的返回
+	// application/octet-stream。统一写成 IANA 类型，确保对象元数据和后续
+	// 下载响应都按视频处理。
+	if resourceType == "video" && strings.EqualFold(ext, ".ts") {
+		return "video/mp2t"
+	}
+
+	contentType = strings.TrimSpace(contentType)
+	if contentType != "" {
+		return contentType
+	}
+	if inferred := mime.TypeByExtension(ext); inferred != "" {
+		return inferred
+	}
+	return defaultContentType(resourceType)
 }

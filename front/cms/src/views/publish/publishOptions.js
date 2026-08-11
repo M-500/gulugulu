@@ -3,7 +3,7 @@ export const publishTypes = [
     key: 'video',
     label: '上传视频',
     shortLabel: '视频',
-    accept: 'video/*',
+    accept: 'video/*,.ts,video/mp2t',
     hint: '拖拽视频到此或点击上传',
     buttonText: '上传视频',
     description: '适合短视频、教程、探店与内容切片'

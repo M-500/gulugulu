@@ -10,7 +10,7 @@
         <template v-if="activeTab === 'note'">
           <div class="phone-status">9:41 <span>▮▮ ◒ ▰</span></div>
           <div class="phone-media">
-            <video v-if="asset?.kind === 'video'" :src="asset.url" controls muted playsinline />
+            <LocalVideoPlayer v-if="asset?.kind === 'video'" :source="asset" controls />
             <img v-else-if="asset" :src="asset.url" alt="">
             <div v-else class="empty-preview">暂无素材</div>
           </div>
@@ -30,7 +30,7 @@
           <div class="cover-feed">
             <article v-for="(card, index) in coverCards" :key="card.key" class="cover-note-card">
               <div class="cover-note-card__media" :class="`is-card-${index + 1}`">
-                <video v-if="card.asset?.kind === 'video'" :src="card.asset.url" muted playsinline />
+                <LocalVideoPlayer v-if="card.asset?.kind === 'video'" :source="card.asset" />
                 <img v-else-if="card.asset" :src="card.asset.url" alt="">
                 <div v-else class="cover-placeholder"><span>咕噜</span><small>记录生活灵感</small></div>
                 <i v-if="card.asset?.kind === 'video'">▶</i>
@@ -48,6 +48,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+
+import LocalVideoPlayer from '@/components/LocalVideoPlayer.vue'
 
 const props = defineProps({
   asset: { type: Object, default: null },
